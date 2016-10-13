@@ -1,9 +1,9 @@
 package antgo
 
 import (
+	"fmt"
 	"sync"
 	"time"
-	"fmt"
 )
 
 type Config struct {
@@ -12,11 +12,11 @@ type Config struct {
 }
 
 type Server struct {
-	config    *Config            // server configuration
-	reactor   Reactor    // message callbacks in connection
-	protocol  Protocol  // customize packet protocol
-	exitChan  chan struct{}      // notify all goroutines to shutdown
-	waitGroup *sync.WaitGroup    // wait for all goroutines
+	config    *Config         // server configuration
+	reactor   Reactor         // message callbacks in connection
+	protocol  Protocol        // customize packet protocol
+	exitChan  chan struct{}   // notify all goroutines to shutdown
+	waitGroup *sync.WaitGroup // wait for all goroutines
 }
 
 // NewServer creates a server

@@ -1,54 +1,64 @@
 package listener
 
 import (
-    "net"
-    "fmt"
+	"fmt"
+	"net"
+	"strconv"
+	"time"
 )
 
-type UDPListener struct{
-    listener *net.UDPListener
+type UDPListener struct {
+	addr     *net.UDPAddr
+	listener *net.UDPConn
 }
 
-func NewUDPListener(ip string, port int) *UDPListener {
-    addr, err := net.ResolveUDPAddr("udp", ip + ":" +strconv.Itoa(port))
-    listener, err := net.ListenUDP("udp", addr)
-    fmt.print(ip)
-    fmt.print(port)
-    return &UDPListener{
-        addr: addr,
-        listener: listener,
-    }
+func NewUDPListener(netType string, ip string, port int) *UDPListener {
+	addr, err := net.ResolveUDPAddr(netType, ip+":"+strconv.Itoa(port))
+	if err != nil { //EOF, or worse
+		fmt.Println(err)
+		return nil
+	}
+	listener, err := net.ListenUDP(netType, addr)
+	if err != nil { //EOF, or worse
+		fmt.Println(err)
+		return nil
+	}
+	fmt.Println(ip)
+	fmt.Println(port)
+	return &UDPListener{
+		addr:     addr,
+		listener: listener,
+	}
 }
 
-func (p UDPListener) ReadUdpPacket(conn net.Conn, endTag []byte) (<-chan string) {
-    msg := make(chan string)
+func (p UDPListener) ReadUdpPacket(conn net.Conn, endTag []byte) <-chan string {
+	msg := make(chan string)
 
-    for {
-        data := make([]byte, 1024)
+	for {
+		data := make([]byte, 1024)
 
-        readLengh, err := conn.Read(data)
+		readLengh, err := conn.Read(data)
 
-        if err != nil { //EOF, or worse
-            return nil, err
-        }
+		if err != nil { //EOF, or worse
+			return nil
+		}
 
-        if readLengh > 0 {
-            msg <- string(data)
-        }
-    }
-    return msg
+		if readLengh > 0 {
+			msg <- string(data)
+		}
+	}
+	return msg
 }
 
-func (p UDPListener) SetDeadline(t time.Time) (err error){
-    p.listener.SetDeadline(t)
-    return nil
+func (p UDPListener) SetDeadline(t time.Time) (err error) {
+	p.listener.SetDeadline(t)
+	return nil
 }
 
-func (p UDPListener) Accept()(net.Conn, error){
-    return p.listener.AcceptTCP()
+func (p UDPListener) Accept() (net.Conn, error) {
+	return p.listener, nil
 }
 
-func (p UDPListener) Close(){
-    p.listener.Close()
+func (p UDPListener) Close() {
+	p.listener.Close()
 }
-

@@ -16,16 +16,16 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	tcpListener := listener.NewTCPListener("tcp4", "127.0.0.1", 2300)
+	echoListener := listener.NewTCPListener("echo4", "127.0.0.1", 2300)
 
 	// creates a server
 	config := &antgo.Config{
 		PacketSendChanLimit:    20,
 		PacketReceiveChanLimit: 20,
 	}
-	tcpReactor := reactor.TCPReactor{}
-	tcpProtocol := protocol.NewTCPProtocol(tcpListener)
-	srv := antgo.NewServer(config, tcpReactor, tcpProtocol)
+	echoReactor := reactor.EchoReactor{}
+	echoProtocol := protocol.NewEchoProtocol(echoListener)
+	srv := antgo.NewServer(config, echoReactor, echoProtocol)
 
 	go srv.Start(time.Second)
 	chSig := make(chan os.Signal)

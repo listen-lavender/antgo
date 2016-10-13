@@ -1,20 +1,20 @@
 package listener
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"strconv"
-	"bytes"
 	"time"
 )
 
 type TCPListener struct {
-	addr *net.TCPAddr
+	addr     *net.TCPAddr
 	listener *net.TCPListener
 }
 
 func NewTCPListener(netType string, ip string, port int) *TCPListener {
-	addr, err := net.ResolveTCPAddr(netType, ip + ":" + strconv.Itoa(port))
+	addr, err := net.ResolveTCPAddr(netType, ip+":"+strconv.Itoa(port))
 	listener, err := net.ListenTCP(netType, addr)
 	fmt.Println(err)
 	fmt.Println(ip)
@@ -26,7 +26,7 @@ func NewTCPListener(netType string, ip string, port int) *TCPListener {
 	}
 }
 
-func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) (<-chan string) {
+func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) <-chan string {
 	fullBuf := bytes.NewBuffer([]byte{})
 	msg := make(chan string)
 
@@ -37,6 +37,7 @@ func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) (<-chan string) {
 
 		if err != nil { //EOF, or worse
 			fmt.Println(err)
+			return nil
 		}
 
 		if readLengh > 0 {
@@ -54,15 +55,15 @@ func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) (<-chan string) {
 	return msg
 }
 
-func (p TCPListener) SetDeadline(t time.Time) (err error){
+func (p TCPListener) SetDeadline(t time.Time) (err error) {
 	p.listener.SetDeadline(t)
 	return nil
 }
 
-func (p TCPListener) Accept()(net.Conn, error){
+func (p TCPListener) Accept() (net.Conn, error) {
 	return p.listener.AcceptTCP()
 }
 
-func (p TCPListener) Close(){
+func (p TCPListener) Close() {
 	p.listener.Close()
 }

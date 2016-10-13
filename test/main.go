@@ -1,10 +1,10 @@
 package main
 
 import (
-    . "fmt"
+	. "fmt"
 )
 
-func main(){
-    Println("abc")
-    Println("abcd")
+func main() {
+	Println("abc")
+	Println("abcd")
 }
