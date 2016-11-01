@@ -2,7 +2,8 @@ package main
 
 import (
 	"../../antgo"
-	"../../antgo/listener"
+	"../../antgo/chatroom"
+	"../../antgo/multinet"
 	"../../antgo/protocol"
 	"../../antgo/reactor"
 	"fmt"
@@ -16,16 +17,16 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	echoListener := listener.NewTCPListener("echo4", "127.0.0.1", 2300)
+	tcpListenSpeaker := listenspeaker.NewTCPListenSpeaker("tcp4", "127.0.0.1", 2300)
 
 	// creates a server
 	config := &antgo.Config{
 		PacketSendChanLimit:    20,
 		PacketReceiveChanLimit: 20,
 	}
-	echoReactor := reactor.EchoReactor{}
-	echoProtocol := protocol.NewEchoProtocol(echoListener)
-	srv := antgo.NewServer(config, echoReactor, echoProtocol)
+	tcpReactor := reactor.TCPReactor{}
+	tcpProtocol := protocol.NewTCPProtocol(tcpListenSpeaker)
+	srv := antgo.NewServer(config, tcpReactor, tcpProtocol)
 
 	go srv.Start(time.Second)
 	chSig := make(chan os.Signal)

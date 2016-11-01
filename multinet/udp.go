@@ -1,18 +1,20 @@
-package listener
+package multinet
 
 import (
+	"../../antgo"
 	"fmt"
 	"net"
 	"strconv"
 	"time"
 )
 
-type UDPListener struct {
+type UDPListenSpeaker struct {
+	netType  string
 	addr     *net.UDPAddr
 	listener *net.UDPConn
 }
 
-func NewUDPListener(netType string, ip string, port int) *UDPListener {
+func NewUDPListenSpeaker(netType string, ip string, port int) antgo.ListenSpeaker {
 	addr, err := net.ResolveUDPAddr(netType, ip+":"+strconv.Itoa(port))
 	if err != nil { //EOF, or worse
 		fmt.Println(err)
@@ -25,19 +27,20 @@ func NewUDPListener(netType string, ip string, port int) *UDPListener {
 	}
 	fmt.Println(ip)
 	fmt.Println(port)
-	return &UDPListener{
+	return &UDPListenSpeaker{
+		netType:  netType,
 		addr:     addr,
 		listener: listener,
 	}
 }
 
-func (p UDPListener) ReadUdpPacket(conn net.Conn, endTag []byte) <-chan string {
+func (p UDPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
 	msg := make(chan string)
 
 	for {
 		data := make([]byte, 1024)
 
-		readLengh, err := conn.Read(data)
+		readLengh, err := netConn.Read(data)
 
 		if err != nil { //EOF, or worse
 			return nil
@@ -50,15 +53,19 @@ func (p UDPListener) ReadUdpPacket(conn net.Conn, endTag []byte) <-chan string {
 	return msg
 }
 
-func (p UDPListener) SetDeadline(t time.Time) (err error) {
+func (p UDPListenSpeaker) SetDeadline(t time.Time) (err error) {
 	p.listener.SetDeadline(t)
 	return nil
 }
 
-func (p UDPListener) Accept() (net.Conn, error) {
+func (p UDPListenSpeaker) Accept() (net.Conn, error) {
 	return p.listener, nil
 }
 
-func (p UDPListener) Close() {
+func (p UDPListenSpeaker) Dial() (net.Conn, error) {
+	return net.DialUDP(p.netType, nil, p.addr)
+}
+
+func (p UDPListenSpeaker) Close() {
 	p.listener.Close()
 }

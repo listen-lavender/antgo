@@ -1,9 +1,11 @@
 package antgo
 
+import (
+	"net"
+)
+
 type Reactor interface {
-	// OnOpen(c *Connection) bool
-	// OnBeat(c *Connection) bool
-	OnConnect(c *Connection) bool
-	OnMessage(c *Connection, pt Packet) bool
-	OnClose(c *Connection)
+	OnConnect(c *Conn) net.Addr
+	OnMessage(c *Conn, pt Packet) bool
+	OnClose(c *Conn)
 }

@@ -1,7 +1,6 @@
 package antgo
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -11,60 +10,116 @@ type Config struct {
 	PacketReceiveChanLimit uint32 // the limit of packet receive channel
 }
 
-type Server struct {
-	config    *Config         // server configuration
-	reactor   Reactor         // message callbacks in connection
-	protocol  Protocol        // customize packet protocol
+type Ant struct {
+	Transport string // ant transport tcp or udp
+	IP        string // ip
+	Port      int    // port
+	Ptype     string // protocol type, name of New method
+	Rtype     string // reactor type, name of struct
+	Conns     []*Conn
+
+	config   *Config  // ant configuration
+	protocol Protocol // ant protocol
+	Reactor           // ant reactor
+
 	exitChan  chan struct{}   // notify all goroutines to shutdown
 	waitGroup *sync.WaitGroup // wait for all goroutines
 }
 
-// NewServer creates a server
-func NewServer(config *Config, reactor Reactor, protocol Protocol) *Server {
-	return &Server{
-		config:    config,
-		reactor:   reactor,
-		protocol:  protocol,
+// NewAnt creates a ant
+func NewAnt(transport string, ip string, port int, config *Config, protocol Protocol, reactor Reactor) *Ant {
+	return &Ant{
+		Transport: transport,
+		IP:        ip,
+		Port:      port,
+
+		config:   config,
+		Reactor:  reactor,
+		protocol: protocol,
+
 		exitChan:  make(chan struct{}),
 		waitGroup: &sync.WaitGroup{},
 	}
 }
 
-// Start starts service
-func (s *Server) Start(acceptTimeout time.Duration) {
-	listener := s.protocol.GetListener()
-	s.waitGroup.Add(1)
+func (ant *Ant) Listen(acceptTimeout time.Duration) {
+	listenspeaker := ant.protocol.ListenSpeaker()
+	ant.waitGroup.Add(1)
 
 	defer func() {
-		fmt.Println("abc")
-		listener.Close()
-		s.waitGroup.Done()
+		listenspeaker.Close()
+		ant.waitGroup.Done()
 	}()
 
 	for {
 		select {
-		case <-s.exitChan:
+		case <-ant.exitChan:
 			return
 
 		default:
 		}
 
-		listener.SetDeadline(time.Now().Add(acceptTimeout))
-		conn, err := listener.Accept()
+		listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
+		netConn, err := listenspeaker.Accept()
 		if err != nil {
 			continue
 		}
 
-		s.waitGroup.Add(1)
+		ant.waitGroup.Add(1)
 		go func() {
-			newConnection(conn, s).Do()
-			s.waitGroup.Done()
+			conn := newConn(netConn, ant)
+			conn.Do(ant)
+			ant.Conns = append(ant.Conns, conn)
+			ant.waitGroup.Done()
 		}()
 	}
 }
 
-// Stop stops service
-func (s *Server) Stop() {
-	close(s.exitChan)
-	s.waitGroup.Wait()
+func (ant *Ant) Speak(acceptTimeout time.Duration) *Conn {
+	listenspeaker := ant.protocol.ListenSpeaker()
+	listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
+	netConn, err := listenspeaker.Dial()
+	if err != nil {
+		return nil
+	}
+	conn := newConn(netConn, ant)
+	conn.Do(ant)
+	return conn
+}
+
+func (ant *Ant) Run() {
+
+}
+
+func (ant *Ant) Reload() {
+
+}
+
+func (ant *Ant) Stop() {
+	close(ant.exitChan)
+	ant.waitGroup.Wait()
+}
+
+func (ant *Ant) BeforeStart() {
+
+}
+
+func (ant *Ant) AfterStart() {
+
+}
+
+func (ant *Ant) BeforeReload() {
+
+}
+
+func (ant *Ant) AfterReload() {
+
+}
+
+func (ant *Ant) BeforeStop() {
+
+}
+
+func (ant *Ant) AfterStop() {
+
 }

@@ -6,12 +6,11 @@ import (
 
 type Packet interface {
 	Serialize() []byte
-	// GetType() string
-	// GetData() []byte
+	Event() string
+	Msg() []byte
 }
 
 type Protocol interface {
-	ReadPacket(conn net.Conn) <-chan Packet
-	GetListener() Listener
-	// SetListener(listener Listener)
+	ReadPacket(netConn net.Conn) <-chan Packet
+	ListenSpeaker() ListenSpeaker
 }

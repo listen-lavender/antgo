@@ -1,6 +1,7 @@
-package listener
+package multinet
 
 import (
+	"../../antgo"
 	"bytes"
 	"fmt"
 	"net"
@@ -8,32 +9,32 @@ import (
 	"time"
 )
 
-type TCPListener struct {
+type TCPListenSpeaker struct {
+	netType  string
 	addr     *net.TCPAddr
 	listener *net.TCPListener
 }
 
-func NewTCPListener(netType string, ip string, port int) *TCPListener {
+func NewTCPListenSpeaker(netType string, ip string, port int) antgo.ListenSpeaker {
 	addr, err := net.ResolveTCPAddr(netType, ip+":"+strconv.Itoa(port))
-	listener, err := net.ListenTCP(netType, addr)
 	fmt.Println(err)
-	fmt.Println(ip)
-	fmt.Println(port)
+	listener, err := net.ListenTCP(netType, addr)
 
-	return &TCPListener{
+	return &TCPListenSpeaker{
+		netType:  netType,
 		addr:     addr,
 		listener: listener,
 	}
 }
 
-func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) <-chan string {
+func (p TCPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
 	fullBuf := bytes.NewBuffer([]byte{})
 	msg := make(chan string)
 
 	for {
 		data := make([]byte, 1024)
 
-		readLengh, err := conn.Read(data)
+		readLengh, err := netConn.Read(data)
 
 		if err != nil { //EOF, or worse
 			fmt.Println(err)
@@ -55,15 +56,19 @@ func (p TCPListener) ReadPacket(conn net.Conn, endTag []byte) <-chan string {
 	return msg
 }
 
-func (p TCPListener) SetDeadline(t time.Time) (err error) {
+func (p TCPListenSpeaker) SetDeadline(t time.Time) (err error) {
 	p.listener.SetDeadline(t)
 	return nil
 }
 
-func (p TCPListener) Accept() (net.Conn, error) {
+func (p TCPListenSpeaker) Accept() (net.Conn, error) {
 	return p.listener.AcceptTCP()
 }
 
-func (p TCPListener) Close() {
+func (p TCPListenSpeaker) Dial() (net.Conn, error) {
+	return net.DialTCP(p.netType, nil, p.addr)
+}
+
+func (p TCPListenSpeaker) Close() {
 	p.listener.Close()
 }

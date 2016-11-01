@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"../../antgo"
-	"../../antgo/listener"
 	"net"
 	"strings"
 )
@@ -13,64 +12,61 @@ var (
 
 // Packet
 type TCPPacket struct {
-	event   string
-	message []byte
+	event string
+	msg   []byte
 }
 
-func NewTCPPacket(event string, message []byte) *TCPPacket {
+func NewTCPPacket(event string, msg []byte) *TCPPacket {
 	return &TCPPacket{
-		event:   event,
-		message: message,
+		event: event,
+		msg:   msg,
 	}
 }
 
 func (p TCPPacket) Serialize() []byte {
-	buf := p.message
+	buf := p.msg
 	buf = append(buf, endTag...)
 	return buf
 }
 
-func (p TCPPacket) GetType() string {
+func (p TCPPacket) Event() string {
 	return p.event
 }
 
-func (p TCPPacket) GetData() []byte {
-	return p.message
+func (p TCPPacket) Msg() []byte {
+	return p.msg
 }
 
 type TCPProtocol struct {
-	listener *listener.TCPListener
+	// listenspeaker *multinet.TCPListenSpeaker
+	listenspeaker antgo.ListenSpeaker
 }
 
-func NewTCPProtocol(listener *listener.TCPListener) *TCPProtocol {
-	return &TCPProtocol{listener}
+func NewTCPProtocol(listenspeaker antgo.ListenSpeaker) antgo.Protocol {
+	return &TCPProtocol{listenspeaker}
 }
 
-func (p TCPProtocol) ReadPacket(conn net.Conn) <-chan antgo.Packet {
-	msg := make(chan antgo.Packet)
-	listener := p.GetListener()
-	for command := range listener.ReadPacket(conn, endTag) {
+func (p TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
+	queue := make(chan antgo.Packet)
+	listenspeaker := p.ListenSpeaker()
+	for command := range listenspeaker.ReadPacket(netConn, endTag) {
 		parts := strings.Split(command, " ")
 		if len(parts) > 1 {
 			event := parts[0]
-			message := []byte(parts[1])
-			msg <- NewTCPPacket(event, message)
+			msg := []byte(parts[1])
+			queue <- NewTCPPacket(event, msg)
 		} else {
 			if parts[0] == "quit" {
-				msg <- NewTCPPacket("quit", []byte(command))
+				queue <- NewTCPPacket("quit", []byte(command))
 			} else {
-				msg <- NewTCPPacket("unknow", []byte(command))
+				queue <- NewTCPPacket("unknow", []byte(command))
 			}
 		}
 
 	}
-	return msg
+	return queue
 }
 
-func (p TCPProtocol) GetListener() antgo.Listener {
-	return p.listener
+func (p TCPProtocol) ListenSpeaker() antgo.ListenSpeaker {
+	return p.listenspeaker
 }
-
-// func (p TCPProtocol)SetListener(listener antgo.Listener){
-//     p.listener = listener
-// }
