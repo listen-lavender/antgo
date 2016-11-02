@@ -7,6 +7,10 @@ import (
 	"../../antgo/reactor"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"time"
+	"syscall"
 )
 
 type RegisterReactor struct {
@@ -102,4 +106,12 @@ func NewRegister(transport string, ip string, port int, lType string, pType stri
 	}
 	return &Register{
 		*antgo.NewAnt(transport, ip, port, config, protocol, reactor)}
+}
+
+func (p *Register) Run() {
+	go p.Listen(time.Second)
+	help := make(chan os.Signal)
+	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
+	fmt.Println("Signal: ", <-help)
+	p.Stop()
 }

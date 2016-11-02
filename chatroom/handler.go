@@ -5,7 +5,7 @@ type Handler struct {
 }
 
 func (*Handler) GetSecret() string {
-    return ""
+	return ""
 }
 
 func (*Handler) SetSecret(secret string) {
@@ -13,7 +13,7 @@ func (*Handler) SetSecret(secret string) {
 }
 
 func (*Handler) GetSession(end_id string) string {
-    return ""
+	return ""
 }
 
 func (*Handler) SetSession(end_id string, session string) {

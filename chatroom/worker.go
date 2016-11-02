@@ -1,10 +1,10 @@
 package chatroom
 
 import (
-	"fmt"
 	"../../antgo"
 	"../../antgo/protocol"
 	"../../antgo/reactor"
+	"fmt"
 )
 
 type WRegisterReactor struct {
@@ -39,7 +39,7 @@ type WGatewayReactor struct {
 	reactor.TCPReactor
 	WorkerConns  map[string]*antgo.Conn
 	GatewayConns map[string]*antgo.Conn
-	worker *Worker
+	worker       *Worker
 }
 
 func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) {
@@ -68,8 +68,8 @@ func NewWorker(transport string, ip string, port int, lType string, pType string
 	// 	PacketSendChanLimit:    sendLimit,
 	// 	PacketReceiveChanLimit: receiveLimit}
 
-    // protocol := NewProtocol(pType, NewListenSpeaker(lType, transport, ip, port))
-    // reactor := &reactor.TCPReactor{}
+	// protocol := NewProtocol(pType, NewListenSpeaker(lType, transport, ip, port))
+	// reactor := &reactor.TCPReactor{}
 
 	return &Worker{
 		RegisterConn: nil,
