@@ -75,16 +75,37 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 	}
 }
 
-func (ant *Ant) Speak(acceptTimeout time.Duration) *Conn {
+func (ant *Ant) Speak(acceptTimeout time.Duration) {
 	listenspeaker := ant.protocol.ListenSpeaker()
-	listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
-	netConn, err := listenspeaker.Dial()
-	if err != nil {
-		return nil
+	ant.waitGroup.Add(1)
+
+	defer func() {
+		listenspeaker.Close()
+		ant.waitGroup.Done()
+	}()
+
+	for {
+		select {
+		case <-ant.exitChan:
+			return
+
+		default:
+		}
+
+		listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
+		netConn, err := listenspeaker.Dial()
+		if err != nil {
+			continue
+		}
+
+		ant.waitGroup.Add(1)
+		go func() {
+			conn := newConn(netConn, ant)
+			conn.Do(ant)
+			ant.Conns = append(ant.Conns, conn)
+			ant.waitGroup.Done()
+		}()
 	}
-	conn := newConn(netConn, ant)
-	conn.Do(ant)
-	return conn
 }
 
 func (ant *Ant) Run() {
