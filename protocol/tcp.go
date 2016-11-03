@@ -67,6 +67,10 @@ func (p TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
 	return queue
 }
 
+func (p TCPProtocol) Deserialize(event string, msg []byte) antgo.Packet {
+	return NewTCPPacket(event, msg)
+}
+
 func (p TCPProtocol) ListenSpeaker() antgo.ListenSpeaker {
 	return p.listenspeaker
 }

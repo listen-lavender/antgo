@@ -58,24 +58,6 @@ func (p *GWorkerReactor) OnConnect(c *antgo.Conn)net.Addr {
 }
 
 func (p *GWorkerReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
-	event := pt.Event()
-	msg := antgo.JsonDecode(pt.Msg())
-	secret := msg["secret"]
-	fmt.Println(secret)
-	switch event {
-	case "broadcast_addresses":
-		if msg["address"] == nil || msg["address"] == "" {
-			fmt.Println("address not found\n")
-			c.Close()
-			p.OnClose(c)
-		}
-		addresses := msg["addresses"].([]string)
-		for _, addr := range addresses {
-			p.gateway.AllGatewayAddr[addr] = nil
-		}
-	default:
-		fmt.Println("Receive bad event:$event from Worker.\n")
-	}
 	return true
 }
 
@@ -83,16 +65,13 @@ func (p *GWorkerReactor) OnClose(c *antgo.Conn) {
 }
 
 type Gateway struct {
-	OuterAnt *antgo.Ant
-	InnerAnt []*antgo.Ant
+	EndAnt *antgo.Ant
+	WorkerAnt []*antgo.Ant
+	RegisterAnt *antgo.Ant
 
-	EndConns     map[string]*antgo.Conn
-	WorkerConns  map[string]*antgo.Conn
-	RegisterConn *antgo.Conn
-
-	AllGatewayAddr  map[string]net.Addr
-	BusyGatewayAddr map[string]net.Addr
-	IdleGatewayAddr map[string]net.Addr
+	// EndConns     map[string]*antgo.Conn
+	// WorkerConns  map[string]*antgo.Conn
+	// RegisterConn *antgo.Conn
 }
 
 func NewGateway(end_transport string, end_ip string, end_port int, end_lType string, end_pType string,
@@ -100,54 +79,62 @@ func NewGateway(end_transport string, end_ip string, end_port int, end_lType str
 	register_transport string, register_ip string, register_port int, register_lType string, register_pType string,
 	sendLimit uint32, receiveLimit uint32) *Gateway {
 	gateway := &Gateway{
-		OuterAnt:     nil,
-		InnerAnt:     make([]*antgo.Ant, 0, 12),
-		WorkerConns:  make(map[string]*antgo.Conn),
-		EndConns: make(map[string]*antgo.Conn),
-		RegisterConn: nil,
-		AllGatewayAddr:  make(map[string]net.Addr),
-		BusyGatewayAddr: make(map[string]net.Addr),
-		IdleGatewayAddr: make(map[string]net.Addr)}
+		EndAnt:     nil,
+		RegisterAnt: nil,
+		WorkerAnt:     make([]*antgo.Ant, 0, 12)}
 
 	config := &antgo.Config{
 		PacketSendChanLimit:    sendLimit,
 		PacketReceiveChanLimit: receiveLimit}
 
-	outProtocol := NewProtocol(end_pType, NewListenSpeaker(end_lType, end_transport, end_ip, end_port))
-	outReactor := &GEndReactor{gateway:gateway}
-	gateway.OuterAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, outProtocol, outReactor)
+	endProtocol := NewProtocol(end_pType, NewListenSpeaker(end_lType, end_transport, end_ip, end_port))
+    endReactor := &GEndReactor{gateway:gateway}
+    gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, endProtocol, endReactor)
+
+    registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
+    registerReactor := &GRegisterReactor{gateway:gateway}
+    gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
 
 	for _, port := range worker_port {
-		innerProtocol := NewProtocol(worker_pType, NewListenSpeaker(worker_lType, worker_transport, worker_ip, port))
-		innerReactor := &GWorkerReactor{gateway:gateway}
-		gateway.InnerAnt = append(gateway.InnerAnt, antgo.NewAnt(worker_transport, worker_ip, port, config, innerProtocol, innerReactor))
+		workerProtocol := NewProtocol(worker_pType, NewListenSpeaker(worker_lType, worker_transport, worker_ip, port))
+		workerReactor := &GWorkerReactor{gateway:gateway}
+		gateway.WorkerAnt = append(gateway.WorkerAnt, antgo.NewAnt(worker_transport, worker_ip, port, config, workerProtocol, workerReactor))
 	}
 	return gateway
 }
 
-func (*Gateway) pingEnd() {
-
+func (p *Gateway) connectRegister() {
+	go p.RegisterAnt.Speak(time.Second)
+	p.RegisterAnt.Send("gateway_connect", []byte("Welcome to p TCP Server"), 0)
 }
 
-func (*Gateway) pingRegister() {
-
+func (p *Gateway) pingEnd() {
+	p.EndAnt.Send("ping", []byte("Welcome to p TCP Server"), 0)
 }
 
-func (*Gateway) pingWorker() {
+func (p *Gateway) pingRegister() {
+	p.RegisterAnt.Send("ping", []byte("Welcome to p TCP Server"), 0)
+}
 
+func (p *Gateway) pingWorker() {
+	for _, WorkerAnt := range p.WorkerAnt {
+		WorkerAnt.Send("ping", []byte("Welcome to p TCP Server"), 0)
+	}
 }
 
 func (p *Gateway) Run() {
-	go p.OuterAnt.Listen(time.Second)
-	for _, innerAnt := range p.InnerAnt {
-		go innerAnt.Listen(time.Second)
+	go p.EndAnt.Listen(time.Second)
+	for _, WorkerAnt := range p.WorkerAnt {
+		go WorkerAnt.Listen(time.Second)
 	}
+	// p.RegisterAnt.connectRegister()
 
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)
-	p.OuterAnt.Stop()
-	for _, innerAnt := range p.InnerAnt {
-		innerAnt.Stop()
+	p.EndAnt.Stop()
+	for _, WorkerAnt := range p.WorkerAnt {
+		WorkerAnt.Stop()
 	}
+	// p.RegisterAnt.Stop()
 }

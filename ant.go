@@ -32,6 +32,7 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 		Transport: transport,
 		IP:        ip,
 		Port:      port,
+		Conns: make([]*Conn, 0, 1000),
 
 		config:   config,
 		Reactor:  reactor,
@@ -84,6 +85,20 @@ func (ant *Ant) Speak(acceptTimeout time.Duration) {
 		ant.waitGroup.Done()
 	}()
 
+	listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
+	netConn, err := listenspeaker.Dial()
+	if err != nil {
+		return
+	}
+
+	ant.waitGroup.Add(1)
+	go func() {
+		conn := newConn(netConn, ant)
+		conn.Do(ant)
+		ant.Conns = append(ant.Conns, conn)
+		ant.waitGroup.Done()
+	}()
+
 	for {
 		select {
 		case <-ant.exitChan:
@@ -91,20 +106,12 @@ func (ant *Ant) Speak(acceptTimeout time.Duration) {
 
 		default:
 		}
+	}
+}
 
-		listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
-		netConn, err := listenspeaker.Dial()
-		if err != nil {
-			continue
-		}
-
-		ant.waitGroup.Add(1)
-		go func() {
-			conn := newConn(netConn, ant)
-			conn.Do(ant)
-			ant.Conns = append(ant.Conns, conn)
-			ant.waitGroup.Done()
-		}()
+func (ant *Ant) Send(event string, msg []byte, timeout time.Duration) {
+	for _, conn := range(ant.Conns){
+		conn.AsyncWritePacket(ant.protocol.Deserialize(event, msg), timeout)
 	}
 }
 
