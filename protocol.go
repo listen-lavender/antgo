@@ -12,6 +12,6 @@ type Packet interface {
 
 type Protocol interface {
 	ReadPacket(netConn net.Conn) <-chan Packet
-    Deserialize(event string, msg []byte) Packet
+	Deserialize(event string, msg []byte) Packet
 	ListenSpeaker() ListenSpeaker
 }

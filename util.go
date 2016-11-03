@@ -1,6 +1,7 @@
 package antgo
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -22,4 +23,12 @@ func JsonEncode(dict interface{}) []byte {
 		return nil
 	}
 	return str
+}
+
+func Fastjoin(strargs ...string) string {
+	var buffer bytes.Buffer
+	for _, str := range strargs {
+		buffer.WriteString(str)
+	}
+	return buffer.String()
 }

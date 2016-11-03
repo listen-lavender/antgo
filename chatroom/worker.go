@@ -5,15 +5,15 @@ import (
 	"../../antgo/reactor"
 	"fmt"
 	"net"
-    "os"
-    "os/signal"
-    "time"
-    "syscall"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 type WRegisterReactor struct {
 	reactor.TCPReactor
-	worker       *Worker
+	worker *Worker
 }
 
 func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
@@ -35,7 +35,7 @@ func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	default:
 		fmt.Println("Receive bad event:$event from Register.\n")
 	}
-    return true
+	return true
 }
 
 type WGatewayReactor struct {
@@ -54,7 +54,7 @@ func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 		return true
 	}
 	Handlers[event](c, msg["data"].(string), p.worker)
-    return true
+	return true
 }
 
 // type WorkerReactor struct {
@@ -64,8 +64,8 @@ func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 
 type Worker struct {
 	RegisterAnt *antgo.Ant
-	GatewayAnt []*antgo.Ant
-	
+	GatewayAnt  []*antgo.Ant
+
 	AllGatewayAddr  map[string]net.Addr
 	BusyGatewayAddr map[string]net.Addr
 	IdleGatewayAddr map[string]net.Addr
@@ -74,20 +74,20 @@ type Worker struct {
 func NewWorker(register_transport string, register_ip string, register_port int, register_lType string, register_pType string,
 	sendLimit uint32, receiveLimit uint32) *Worker {
 	worker := &Worker{
-        RegisterAnt:     nil,
-        GatewayAnt:     make([]*antgo.Ant, 0, 12),
-        AllGatewayAddr:  make(map[string]net.Addr),
-        BusyGatewayAddr: make(map[string]net.Addr),
-        IdleGatewayAddr: make(map[string]net.Addr)}
+		RegisterAnt:     nil,
+		GatewayAnt:      make([]*antgo.Ant, 0, 12),
+		AllGatewayAddr:  make(map[string]net.Addr),
+		BusyGatewayAddr: make(map[string]net.Addr),
+		IdleGatewayAddr: make(map[string]net.Addr)}
 
-    config := &antgo.Config{
-        PacketSendChanLimit:    sendLimit,
-        PacketReceiveChanLimit: receiveLimit}
+	config := &antgo.Config{
+		PacketSendChanLimit:    sendLimit,
+		PacketReceiveChanLimit: receiveLimit}
 
-    registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
-    registerReactor := &WRegisterReactor{worker:worker}
-    worker.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
-    return worker
+	registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
+	registerReactor := &WRegisterReactor{worker: worker}
+	worker.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
+	return worker
 }
 
 func (p *Worker) connectRegister() {
@@ -97,10 +97,10 @@ func (p *Worker) connectRegister() {
 
 func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gateway_port int, gateway_lType string, gateway_pType string) {
 	config := &antgo.Config{
-    PacketSendChanLimit:    20,
-    PacketReceiveChanLimit: 20}
+		PacketSendChanLimit:    20,
+		PacketReceiveChanLimit: 20}
 	gatewayProtocol := NewProtocol(gateway_pType, NewListenSpeaker(gateway_lType, gateway_transport, gateway_ip, gateway_port))
-	gatewayReactor := &WGatewayReactor{worker:p}
+	gatewayReactor := &WGatewayReactor{worker: p}
 	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, config, gatewayProtocol, gatewayReactor)
 	go gatewayAnt.Speak(time.Second)
 	gatewayAnt.Send("worker_connect", []byte("Welcome to p TCP Server"), 0)
@@ -108,17 +108,16 @@ func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gat
 }
 
 func (p *Worker) PingRegister() {
-    p.RegisterAnt.Send("ping", []byte(""), 0)
+	p.RegisterAnt.Send("ping", []byte(""), 0)
 }
 
 func (p *Worker) Run() {
-    p.connectRegister()
-    help := make(chan os.Signal)
-    signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
-    fmt.Println("Signal: ", <-help)
-    p.RegisterAnt.Stop()
-    for _, gatewayAnt := range(p.GatewayAnt){
-        gatewayAnt.Stop()
-    }
+	p.connectRegister()
+	help := make(chan os.Signal)
+	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
+	fmt.Println("Signal: ", <-help)
+	p.RegisterAnt.Stop()
+	for _, gatewayAnt := range p.GatewayAnt {
+		gatewayAnt.Stop()
+	}
 }
-

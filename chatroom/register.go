@@ -9,8 +9,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"time"
 	"syscall"
+	"time"
 )
 
 type RegisterReactor struct {

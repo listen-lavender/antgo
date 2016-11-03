@@ -7,8 +7,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"time"
 	"syscall"
+	"time"
 )
 
 type GRegisterReactor struct {
@@ -16,11 +16,11 @@ type GRegisterReactor struct {
 	gateway *Gateway
 }
 
-func (p *GRegisterReactor) OnConnect(c *antgo.Conn)net.Addr {
+func (p *GRegisterReactor) OnConnect(c *antgo.Conn) net.Addr {
 	return nil
 }
 
-func (p *GRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool{
+func (p *GRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	return true
 }
 
@@ -32,11 +32,11 @@ type GEndReactor struct {
 	gateway *Gateway
 }
 
-func (p *GEndReactor) OnConnect(c *antgo.Conn)net.Addr{
+func (p *GEndReactor) OnConnect(c *antgo.Conn) net.Addr {
 	return nil
 }
 
-func (p *GEndReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool{
+func (p *GEndReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	event := pt.Event()
 	msg := antgo.JsonDecode(pt.Msg())
 	secret := msg["secret"]
@@ -53,7 +53,7 @@ type GWorkerReactor struct {
 	gateway *Gateway
 }
 
-func (p *GWorkerReactor) OnConnect(c *antgo.Conn)net.Addr {
+func (p *GWorkerReactor) OnConnect(c *antgo.Conn) net.Addr {
 	return nil
 }
 
@@ -65,8 +65,8 @@ func (p *GWorkerReactor) OnClose(c *antgo.Conn) {
 }
 
 type Gateway struct {
-	EndAnt *antgo.Ant
-	WorkerAnt []*antgo.Ant
+	EndAnt      *antgo.Ant
+	WorkerAnt   []*antgo.Ant
 	RegisterAnt *antgo.Ant
 
 	// EndConns     map[string]*antgo.Conn
@@ -79,25 +79,25 @@ func NewGateway(end_transport string, end_ip string, end_port int, end_lType str
 	register_transport string, register_ip string, register_port int, register_lType string, register_pType string,
 	sendLimit uint32, receiveLimit uint32) *Gateway {
 	gateway := &Gateway{
-		EndAnt:     nil,
+		EndAnt:      nil,
 		RegisterAnt: nil,
-		WorkerAnt:     make([]*antgo.Ant, 0, 12)}
+		WorkerAnt:   make([]*antgo.Ant, 0, 12)}
 
 	config := &antgo.Config{
 		PacketSendChanLimit:    sendLimit,
 		PacketReceiveChanLimit: receiveLimit}
 
 	endProtocol := NewProtocol(end_pType, NewListenSpeaker(end_lType, end_transport, end_ip, end_port))
-    endReactor := &GEndReactor{gateway:gateway}
-    gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, endProtocol, endReactor)
+	endReactor := &GEndReactor{gateway: gateway}
+	gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, endProtocol, endReactor)
 
-    registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
-    registerReactor := &GRegisterReactor{gateway:gateway}
-    gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
+	registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
+	registerReactor := &GRegisterReactor{gateway: gateway}
+	gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
 
 	for _, port := range worker_port {
 		workerProtocol := NewProtocol(worker_pType, NewListenSpeaker(worker_lType, worker_transport, worker_ip, port))
-		workerReactor := &GWorkerReactor{gateway:gateway}
+		workerReactor := &GWorkerReactor{gateway: gateway}
 		gateway.WorkerAnt = append(gateway.WorkerAnt, antgo.NewAnt(worker_transport, worker_ip, port, config, workerProtocol, workerReactor))
 	}
 	return gateway

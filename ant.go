@@ -32,7 +32,7 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 		Transport: transport,
 		IP:        ip,
 		Port:      port,
-		Conns: make([]*Conn, 0, 1000),
+		Conns:     make([]*Conn, 0, 1000),
 
 		config:   config,
 		Reactor:  reactor,
@@ -110,7 +110,7 @@ func (ant *Ant) Speak(acceptTimeout time.Duration) {
 }
 
 func (ant *Ant) Send(event string, msg []byte, timeout time.Duration) {
-	for _, conn := range(ant.Conns){
+	for _, conn := range ant.Conns {
 		conn.AsyncWritePacket(ant.protocol.Deserialize(event, msg), timeout)
 	}
 }

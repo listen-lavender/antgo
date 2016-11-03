@@ -17,8 +17,15 @@ type TCPListenSpeaker struct {
 
 func NewTCPListenSpeaker(netType string, ip string, port int) antgo.ListenSpeaker {
 	addr, err := net.ResolveTCPAddr(netType, ip+":"+strconv.Itoa(port))
-	fmt.Println(err)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 	listener, err := net.ListenTCP(netType, addr)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
 	return &TCPListenSpeaker{
 		netType:  netType,
