@@ -4,10 +4,10 @@ import (
 	"../../antgo"
 )
 
-var Indexes map[string]func(listenspeaker antgo.ListenSpeaker) antgo.Protocol
+var Indexes map[string]func(listendialer antgo.ListenDialer) antgo.Protocol
 
 func init() {
-	Indexes = make(map[string]func(listenspeaker antgo.ListenSpeaker) antgo.Protocol)
+	Indexes = make(map[string]func(listendialer antgo.ListenDialer) antgo.Protocol)
 	// Indexes["NewEchoProtocol"] = NewEchoProtocol
 	Indexes["newtcpprotocol"] = NewTCPProtocol
 }

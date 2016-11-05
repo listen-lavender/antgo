@@ -99,7 +99,7 @@ func NewRegister(transport string, ip string, port int, lType string, pType stri
 		PacketSendChanLimit:    sendLimit,
 		PacketReceiveChanLimit: receiveLimit}
 
-	protocol := NewProtocol(pType, NewListenSpeaker(lType, transport, ip, port))
+	protocol := NewProtocol(pType, NewListenDialer(lType, transport, ip, port))
 	reactor := &RegisterReactor{
 		WorkerConns:  make(map[string]*antgo.Conn),
 		GatewayConns: make(map[string]net.Addr),
@@ -109,7 +109,7 @@ func NewRegister(transport string, ip string, port int, lType string, pType stri
 }
 
 func (p *Register) Run() {
-	go p.Listen(time.Second)
+	go p.Listen(time.Second * 30)
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)

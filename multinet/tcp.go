@@ -9,32 +9,27 @@ import (
 	"time"
 )
 
-type TCPListenSpeaker struct {
+type TCPListenDialer struct {
 	netType  string
 	addr     *net.TCPAddr
 	listener *net.TCPListener
 }
 
-func NewTCPListenSpeaker(netType string, ip string, port int) antgo.ListenSpeaker {
+func NewTCPListenDialer(netType string, ip string, port int) antgo.ListenDialer {
 	addr, err := net.ResolveTCPAddr(netType, ip+":"+strconv.Itoa(port))
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	listener, err := net.ListenTCP(netType, addr)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
 
-	return &TCPListenSpeaker{
+	return &TCPListenDialer{
 		netType:  netType,
 		addr:     addr,
-		listener: listener,
+		listener: nil,
 	}
 }
 
-func (p TCPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
+func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
 	fullBuf := bytes.NewBuffer([]byte{})
 	msg := make(chan string)
 
@@ -63,19 +58,27 @@ func (p TCPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan str
 	return msg
 }
 
-func (p TCPListenSpeaker) SetDeadline(t time.Time) (err error) {
+func (p *TCPListenDialer) SetDeadline(t time.Time) (err error) {
 	p.listener.SetDeadline(t)
 	return nil
 }
 
-func (p TCPListenSpeaker) Accept() (net.Conn, error) {
+func (p *TCPListenDialer) Listen() {
+	listener, err := net.ListenTCP(p.netType, p.addr)
+	p.listener = listener
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (p *TCPListenDialer) Accept() (net.Conn, error) {
 	return p.listener.AcceptTCP()
 }
 
-func (p TCPListenSpeaker) Dial() (net.Conn, error) {
+func (p *TCPListenDialer) Dial() (net.Conn, error) {
 	return net.DialTCP(p.netType, nil, p.addr)
 }
 
-func (p TCPListenSpeaker) Close() {
+func (p *TCPListenDialer) Close() {
 	p.listener.Close()
 }

@@ -1,6 +1,8 @@
 package antgo
 
 import (
+	"fmt"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -14,6 +16,7 @@ type Ant struct {
 	Transport string // ant transport tcp or udp
 	IP        string // ip
 	Port      int    // port
+	Address   string // listen address
 	Ptype     string // protocol type, name of New method
 	Rtype     string // reactor type, name of struct
 	Conns     []*Conn
@@ -28,10 +31,12 @@ type Ant struct {
 
 // NewAnt creates a ant
 func NewAnt(transport string, ip string, port int, config *Config, protocol Protocol, reactor Reactor) *Ant {
+	address := Fastjoin(transport, "://", ip, ":", strconv.Itoa(port))
 	return &Ant{
 		Transport: transport,
 		IP:        ip,
 		Port:      port,
+		Address:   address,
 		Conns:     make([]*Conn, 0, 1000),
 
 		config:   config,
@@ -44,11 +49,13 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 }
 
 func (ant *Ant) Listen(acceptTimeout time.Duration) {
-	listenspeaker := ant.protocol.ListenSpeaker()
+	listendialer := ant.protocol.ListenDialer()
+	listendialer.Listen()
+	fmt.Println("Listen ", ant.Address, "...")
 	ant.waitGroup.Add(1)
 
 	defer func() {
-		listenspeaker.Close()
+		listendialer.Close()
 		ant.waitGroup.Done()
 	}()
 
@@ -60,9 +67,10 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 		default:
 		}
 
-		listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
-		netConn, err := listenspeaker.Accept()
+		listendialer.SetDeadline(time.Now().Add(acceptTimeout))
+		netConn, err := listendialer.Accept()
 		if err != nil {
+			fmt.Println(err)
 			continue
 		}
 
@@ -76,20 +84,20 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 	}
 }
 
-func (ant *Ant) Speak(acceptTimeout time.Duration) {
-	listenspeaker := ant.protocol.ListenSpeaker()
+func (ant *Ant) Dial(acceptTimeout time.Duration) {
+	listendialer := ant.protocol.ListenDialer()
 	ant.waitGroup.Add(1)
-
 	defer func() {
-		listenspeaker.Close()
+		listendialer.Close()
 		ant.waitGroup.Done()
 	}()
-
-	listenspeaker.SetDeadline(time.Now().Add(acceptTimeout))
-	netConn, err := listenspeaker.Dial()
+	listendialer.SetDeadline(time.Now().Add(acceptTimeout))
+	netConn, err := listendialer.Dial()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
+	fmt.Println("Dial ", ant.Address, "...")
 
 	ant.waitGroup.Add(1)
 	go func() {

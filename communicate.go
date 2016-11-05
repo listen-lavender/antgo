@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-type ListenSpeaker interface {
+type ListenDialer interface {
 	ReadPacket(netConn net.Conn, endTag []byte) <-chan string
 	SetDeadline(t time.Time) (err error)
+	Listen()
 	Accept() (net.Conn, error)
 	Dial() (net.Conn, error)
 	Close()

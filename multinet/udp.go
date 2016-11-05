@@ -8,33 +8,27 @@ import (
 	"time"
 )
 
-type UDPListenSpeaker struct {
+type UDPListenDialer struct {
 	netType  string
 	addr     *net.UDPAddr
 	listener *net.UDPConn
 }
 
-func NewUDPListenSpeaker(netType string, ip string, port int) antgo.ListenSpeaker {
+func NewUDPListenDialer(netType string, ip string, port int) antgo.ListenDialer {
 	addr, err := net.ResolveUDPAddr(netType, ip+":"+strconv.Itoa(port))
 	if err != nil { //EOF, or worse
 		fmt.Println(err)
 		return nil
 	}
-	listener, err := net.ListenUDP(netType, addr)
-	if err != nil { //EOF, or worse
-		fmt.Println(err)
-		return nil
-	}
-	fmt.Println(ip)
-	fmt.Println(port)
-	return &UDPListenSpeaker{
+
+	return &UDPListenDialer{
 		netType:  netType,
 		addr:     addr,
-		listener: listener,
+		listener: nil,
 	}
 }
 
-func (p UDPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
+func (p UDPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
 	msg := make(chan string)
 
 	for {
@@ -53,19 +47,27 @@ func (p UDPListenSpeaker) ReadPacket(netConn net.Conn, endTag []byte) <-chan str
 	return msg
 }
 
-func (p UDPListenSpeaker) SetDeadline(t time.Time) (err error) {
+func (p *UDPListenDialer) SetDeadline(t time.Time) (err error) {
 	p.listener.SetDeadline(t)
 	return nil
 }
 
-func (p UDPListenSpeaker) Accept() (net.Conn, error) {
+func (p *UDPListenDialer) Listen() {
+	listener, err := net.ListenUDP(p.netType, p.addr)
+	p.listener = listener
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (p *UDPListenDialer) Accept() (net.Conn, error) {
 	return p.listener, nil
 }
 
-func (p UDPListenSpeaker) Dial() (net.Conn, error) {
+func (p *UDPListenDialer) Dial() (net.Conn, error) {
 	return net.DialUDP(p.netType, nil, p.addr)
 }
 
-func (p UDPListenSpeaker) Close() {
+func (p *UDPListenDialer) Close() {
 	p.listener.Close()
 }

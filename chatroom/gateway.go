@@ -87,16 +87,16 @@ func NewGateway(end_transport string, end_ip string, end_port int, end_lType str
 		PacketSendChanLimit:    sendLimit,
 		PacketReceiveChanLimit: receiveLimit}
 
-	endProtocol := NewProtocol(end_pType, NewListenSpeaker(end_lType, end_transport, end_ip, end_port))
+	endProtocol := NewProtocol(end_pType, NewListenDialer(end_lType, end_transport, end_ip, end_port))
 	endReactor := &GEndReactor{gateway: gateway}
 	gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, endProtocol, endReactor)
 
-	registerProtocol := NewProtocol(register_pType, NewListenSpeaker(register_lType, register_transport, register_ip, register_port))
+	registerProtocol := NewProtocol(register_pType, NewListenDialer(register_lType, register_transport, register_ip, register_port))
 	registerReactor := &GRegisterReactor{gateway: gateway}
 	gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
 
 	for _, port := range worker_port {
-		workerProtocol := NewProtocol(worker_pType, NewListenSpeaker(worker_lType, worker_transport, worker_ip, port))
+		workerProtocol := NewProtocol(worker_pType, NewListenDialer(worker_lType, worker_transport, worker_ip, port))
 		workerReactor := &GWorkerReactor{gateway: gateway}
 		gateway.WorkerAnt = append(gateway.WorkerAnt, antgo.NewAnt(worker_transport, worker_ip, port, config, workerProtocol, workerReactor))
 	}
@@ -104,7 +104,7 @@ func NewGateway(end_transport string, end_ip string, end_port int, end_lType str
 }
 
 func (p *Gateway) connectRegister() {
-	go p.RegisterAnt.Speak(time.Second)
+	go p.RegisterAnt.Dial(time.Second)
 	p.RegisterAnt.Send("gateway_connect", []byte("Welcome to p TCP Server"), 0)
 }
 
@@ -123,11 +123,11 @@ func (p *Gateway) pingWorker() {
 }
 
 func (p *Gateway) Run() {
-	go p.EndAnt.Listen(time.Second)
+	go p.EndAnt.Listen(time.Second * 30)
 	for _, WorkerAnt := range p.WorkerAnt {
 		go WorkerAnt.Listen(time.Second)
 	}
-	// p.RegisterAnt.connectRegister()
+	p.connectRegister()
 
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
@@ -136,5 +136,5 @@ func (p *Gateway) Run() {
 	for _, WorkerAnt := range p.WorkerAnt {
 		WorkerAnt.Stop()
 	}
-	// p.RegisterAnt.Stop()
+	p.RegisterAnt.Stop()
 }

@@ -4,10 +4,10 @@ import (
 	"../../antgo"
 )
 
-var Indexes map[string]func(netType string, ip string, port int) antgo.ListenSpeaker
+var Indexes map[string]func(netType string, ip string, port int) antgo.ListenDialer
 
 func init() {
-	Indexes = make(map[string]func(netType string, ip string, port int) antgo.ListenSpeaker)
-	Indexes["newtcplistenspeaker"] = NewTCPListenSpeaker
-	Indexes["newudplistenspeaker"] = NewUDPListenSpeaker
+	Indexes = make(map[string]func(netType string, ip string, port int) antgo.ListenDialer)
+	Indexes["newtcplistendialer"] = NewTCPListenDialer
+	Indexes["newudplistendialer"] = NewUDPListenDialer
 }

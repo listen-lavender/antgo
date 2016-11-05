@@ -38,18 +38,18 @@ func (p TCPPacket) Msg() []byte {
 }
 
 type TCPProtocol struct {
-	// listenspeaker *multinet.TCPListenSpeaker
-	listenspeaker antgo.ListenSpeaker
+	// listendialer *multinet.TCPListenDialer
+	listendialer antgo.ListenDialer
 }
 
-func NewTCPProtocol(listenspeaker antgo.ListenSpeaker) antgo.Protocol {
-	return &TCPProtocol{listenspeaker}
+func NewTCPProtocol(listendialer antgo.ListenDialer) antgo.Protocol {
+	return &TCPProtocol{listendialer}
 }
 
-func (p TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
+func (p *TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
 	queue := make(chan antgo.Packet)
-	listenspeaker := p.ListenSpeaker()
-	for command := range listenspeaker.ReadPacket(netConn, endTag) {
+	listendialer := p.ListenDialer()
+	for command := range listendialer.ReadPacket(netConn, endTag) {
 		parts := strings.Split(command, " ")
 		if len(parts) > 1 {
 			event := parts[0]
@@ -67,10 +67,10 @@ func (p TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
 	return queue
 }
 
-func (p TCPProtocol) Deserialize(event string, msg []byte) antgo.Packet {
+func (p *TCPProtocol) Deserialize(event string, msg []byte) antgo.Packet {
 	return NewTCPPacket(event, msg)
 }
 
-func (p TCPProtocol) ListenSpeaker() antgo.ListenSpeaker {
-	return p.listenspeaker
+func (p *TCPProtocol) ListenDialer() antgo.ListenDialer {
+	return p.listendialer
 }
