@@ -29,8 +29,8 @@ func newConn(netConn net.Conn, ant *Ant) *Conn {
 	return &Conn{
 		netConn:     netConn,
 		closeChan:   make(chan struct{}),
-		sendChan:    make(chan Packet, ant.config.PacketSendChanLimit),
-		receiveChan: make(chan Packet, ant.config.PacketReceiveChanLimit),
+		sendChan:    make(chan Packet, ant.Config.PacketSendChanLimit),
+		receiveChan: make(chan Packet, ant.Config.PacketReceiveChanLimit),
 	}
 }
 
@@ -71,24 +71,22 @@ func (c *Conn) Do(ant *Ant) {
 }
 
 func asyncDo(fn func(ant *Ant), ant *Ant) {
-	wg := ant.waitGroup
-	wg.Add(1)
+	WaitGroup.Add(1)
 	go func() {
 		fn(ant)
-		wg.Done()
+		WaitGroup.Done()
 	}()
 }
 
 func (c *Conn) readLoop(ant *Ant) {
 	defer func() {
 		recover()
-		c.Close()
 		ant.OnClose(c)
+		c.Close()
 	}()
-
 	for {
 		select {
-		case <-ant.exitChan:
+		case <-ExitChan:
 			return
 
 		case <-c.closeChan:
@@ -96,37 +94,30 @@ func (c *Conn) readLoop(ant *Ant) {
 
 		default:
 		}
-
-		p := ant.protocol.ReadPacket(c.netConn)
-
-		for q := range p {
-			c.receiveChan <- q
-		}
+		c.receiveChan <- ant.protocol.ReadPacket(c.netConn)
 	}
 }
 
 func (c *Conn) handleLoop(ant *Ant) {
 	defer func() {
 		recover()
-		c.Close()
 		ant.OnClose(c)
+		c.Close()
 	}()
 
 	for {
 		select {
-		case <-ant.exitChan:
+		case <-ExitChan:
 			return
 
 		case <-c.closeChan:
 			return
 
 		case p := <-c.receiveChan:
-			if c.IsClosed() {
-				return
+			if !c.IsClosed() {
+				ant.OnMessage(c, p)
 			}
-			if !ant.OnMessage(c, p) {
-				return
-			}
+			return
 		}
 	}
 }
@@ -168,13 +159,13 @@ func (c *Conn) AsyncWritePacket(p Packet, timeout time.Duration) (err error) {
 func (c *Conn) writeLoop(ant *Ant) {
 	defer func() {
 		recover()
-		c.Close()
 		ant.OnClose(c)
+		c.Close()
 	}()
 
 	for {
 		select {
-		case <-ant.exitChan:
+		case <-ExitChan:
 			return
 
 		case <-c.closeChan:

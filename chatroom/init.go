@@ -6,9 +6,16 @@ import (
 	"../../antgo/protocol"
 	"bytes"
 	"strings"
+	"time"
 )
 
+var Timeout time.Duration
+
 var Handlers map[string]func(conn *antgo.Conn, data string, worker *Worker)
+
+func init() {
+	Timeout = 5 * time.Second
+}
 
 func NewListenDialer(Ltype string, Transport string, IP string, Port int) antgo.ListenDialer {
 	var buffer bytes.Buffer

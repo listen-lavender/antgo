@@ -46,25 +46,21 @@ func NewTCPProtocol(listendialer antgo.ListenDialer) antgo.Protocol {
 	return &TCPProtocol{listendialer}
 }
 
-func (p *TCPProtocol) ReadPacket(netConn net.Conn) <-chan antgo.Packet {
-	queue := make(chan antgo.Packet)
+func (p *TCPProtocol) ReadPacket(netConn net.Conn) antgo.Packet {
 	listendialer := p.ListenDialer()
-	for command := range listendialer.ReadPacket(netConn, endTag) {
-		parts := strings.Split(command, " ")
-		if len(parts) > 1 {
-			event := parts[0]
-			msg := []byte(parts[1])
-			queue <- NewTCPPacket(event, msg)
+	command := listendialer.ReadPacket(netConn, endTag)
+	parts := strings.Split(command, " ")
+	if len(parts) > 1 {
+		event := parts[0]
+		msg := []byte(parts[1])
+		return NewTCPPacket(event, msg)
+	} else {
+		if parts[0] == "quit" {
+			return NewTCPPacket("quit", []byte(command))
 		} else {
-			if parts[0] == "quit" {
-				queue <- NewTCPPacket("quit", []byte(command))
-			} else {
-				queue <- NewTCPPacket("unknow", []byte(command))
-			}
+			return NewTCPPacket("unknow", []byte(command))
 		}
-
 	}
-	return queue
 }
 
 func (p *TCPProtocol) Deserialize(event string, msg []byte) antgo.Packet {

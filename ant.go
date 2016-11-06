@@ -3,7 +3,6 @@ package antgo
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -21,12 +20,9 @@ type Ant struct {
 	Rtype     string // reactor type, name of struct
 	Conns     []*Conn
 
-	config   *Config  // ant configuration
+	Config   *Config  // ant configuration
 	protocol Protocol // ant protocol
 	Reactor           // ant reactor
-
-	exitChan  chan struct{}   // notify all goroutines to shutdown
-	waitGroup *sync.WaitGroup // wait for all goroutines
 }
 
 // NewAnt creates a ant
@@ -39,12 +35,9 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 		Address:   address,
 		Conns:     make([]*Conn, 0, 1000),
 
-		config:   config,
+		Config:   config,
 		Reactor:  reactor,
 		protocol: protocol,
-
-		exitChan:  make(chan struct{}),
-		waitGroup: &sync.WaitGroup{},
 	}
 }
 
@@ -52,16 +45,16 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 	listendialer := ant.protocol.ListenDialer()
 	listendialer.Listen()
 	fmt.Println("Listen ", ant.Address, "...")
-	ant.waitGroup.Add(1)
+	WaitGroup.Add(1)
 
 	defer func() {
 		listendialer.Close()
-		ant.waitGroup.Done()
+		WaitGroup.Done()
 	}()
 
 	for {
 		select {
-		case <-ant.exitChan:
+		case <-ExitChan:
 			return
 
 		default:
@@ -74,23 +67,25 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 			continue
 		}
 
-		ant.waitGroup.Add(1)
+		WaitGroup.Add(1)
 		go func() {
 			conn := newConn(netConn, ant)
 			conn.Do(ant)
 			ant.Conns = append(ant.Conns, conn)
-			ant.waitGroup.Done()
+			WaitGroup.Done()
 		}()
 	}
 }
 
 func (ant *Ant) Dial(acceptTimeout time.Duration) {
 	listendialer := ant.protocol.ListenDialer()
-	ant.waitGroup.Add(1)
+	WaitGroup.Add(1)
+
 	defer func() {
 		listendialer.Close()
-		ant.waitGroup.Done()
+		WaitGroup.Done()
 	}()
+
 	listendialer.SetDeadline(time.Now().Add(acceptTimeout))
 	netConn, err := listendialer.Dial()
 	if err != nil {
@@ -99,22 +94,13 @@ func (ant *Ant) Dial(acceptTimeout time.Duration) {
 	}
 	fmt.Println("Dial ", ant.Address, "...")
 
-	ant.waitGroup.Add(1)
+	WaitGroup.Add(1)
 	go func() {
 		conn := newConn(netConn, ant)
 		conn.Do(ant)
 		ant.Conns = append(ant.Conns, conn)
-		ant.waitGroup.Done()
+		WaitGroup.Done()
 	}()
-
-	for {
-		select {
-		case <-ant.exitChan:
-			return
-
-		default:
-		}
-	}
 }
 
 func (ant *Ant) Send(event string, msg []byte, timeout time.Duration) {
@@ -132,8 +118,8 @@ func (ant *Ant) Reload() {
 }
 
 func (ant *Ant) Stop() {
-	close(ant.exitChan)
-	ant.waitGroup.Wait()
+	close(ExitChan)
+	WaitGroup.Wait()
 }
 
 func (ant *Ant) BeforeStart() {

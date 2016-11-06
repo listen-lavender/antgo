@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 type GRegisterReactor struct {
@@ -76,35 +75,30 @@ type Gateway struct {
 
 func NewGateway(end_transport string, end_ip string, end_port int, end_lType string, end_pType string,
 	worker_transport string, worker_ip string, worker_port []int, worker_lType string, worker_pType string,
-	register_transport string, register_ip string, register_port int, register_lType string, register_pType string,
-	sendLimit uint32, receiveLimit uint32) *Gateway {
+	register_transport string, register_ip string, register_port int, register_lType string, register_pType string) *Gateway {
 	gateway := &Gateway{
 		EndAnt:      nil,
 		RegisterAnt: nil,
 		WorkerAnt:   make([]*antgo.Ant, 0, 12)}
 
-	config := &antgo.Config{
-		PacketSendChanLimit:    sendLimit,
-		PacketReceiveChanLimit: receiveLimit}
-
 	endProtocol := NewProtocol(end_pType, NewListenDialer(end_lType, end_transport, end_ip, end_port))
 	endReactor := &GEndReactor{gateway: gateway}
-	gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, config, endProtocol, endReactor)
+	gateway.EndAnt = antgo.NewAnt(end_transport, end_ip, end_port, antgo.DefaultConfig, endProtocol, endReactor)
 
 	registerProtocol := NewProtocol(register_pType, NewListenDialer(register_lType, register_transport, register_ip, register_port))
 	registerReactor := &GRegisterReactor{gateway: gateway}
-	gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
+	gateway.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, antgo.DefaultConfig, registerProtocol, registerReactor)
 
 	for _, port := range worker_port {
 		workerProtocol := NewProtocol(worker_pType, NewListenDialer(worker_lType, worker_transport, worker_ip, port))
 		workerReactor := &GWorkerReactor{gateway: gateway}
-		gateway.WorkerAnt = append(gateway.WorkerAnt, antgo.NewAnt(worker_transport, worker_ip, port, config, workerProtocol, workerReactor))
+		gateway.WorkerAnt = append(gateway.WorkerAnt, antgo.NewAnt(worker_transport, worker_ip, port, antgo.DefaultConfig, workerProtocol, workerReactor))
 	}
 	return gateway
 }
 
 func (p *Gateway) connectRegister() {
-	go p.RegisterAnt.Dial(time.Second)
+	go p.RegisterAnt.Dial(Timeout)
 	p.RegisterAnt.Send("gateway_connect", []byte("Welcome to p TCP Server"), 0)
 }
 
@@ -123,9 +117,9 @@ func (p *Gateway) pingWorker() {
 }
 
 func (p *Gateway) Run() {
-	go p.EndAnt.Listen(time.Second * 30)
+	go p.EndAnt.Listen(Timeout)
 	for _, WorkerAnt := range p.WorkerAnt {
-		go WorkerAnt.Listen(time.Second)
+		go WorkerAnt.Listen(Timeout)
 	}
 	p.connectRegister()
 

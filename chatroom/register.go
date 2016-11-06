@@ -2,7 +2,6 @@ package chatroom
 
 import (
 	"../../antgo"
-	// "../../antgo/multinet"
 	"../../antgo/protocol"
 	"../../antgo/reactor"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 type RegisterReactor struct {
@@ -40,14 +38,14 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "gateway_connect":
 		if msg["address"] == nil || msg["address"] == "" {
 			fmt.Println("address not found\n")
-			c.Close()
 			p.OnClose(c)
+			c.Close()
 			return true
 		}
 		if msg["secret"] != p.secret {
 			fmt.Println("Register: Key does not match secret_key !== {this->secretKey}\n")
-			c.Close()
 			p.OnClose(c)
+			c.Close()
 			return true
 		}
 		p.GatewayConns[c.Id] = c.RemoteAddr() // msg["address"]
@@ -57,8 +55,8 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "worker_connect":
 		if msg["secret"] != p.secret {
 			fmt.Println("Register: Key does not match secret_key !== {this->secretKey}\n")
-			c.Close()
 			p.OnClose(c)
+			c.Close()
 			return true
 		}
 		p.WorkerConns[c.Id] = c
@@ -68,8 +66,8 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 		return true
 	default:
 		c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("unknow msg")), 0)
-		c.Close()
 		p.OnClose(c)
+		c.Close()
 		return true
 	}
 }
@@ -94,22 +92,18 @@ type Register struct {
 	antgo.Ant
 }
 
-func NewRegister(transport string, ip string, port int, lType string, pType string, sendLimit uint32, receiveLimit uint32) *Register {
-	config := &antgo.Config{
-		PacketSendChanLimit:    sendLimit,
-		PacketReceiveChanLimit: receiveLimit}
-
+func NewRegister(transport string, ip string, port int, lType string, pType string) *Register {
 	protocol := NewProtocol(pType, NewListenDialer(lType, transport, ip, port))
 	reactor := &RegisterReactor{
 		WorkerConns:  make(map[string]*antgo.Conn),
 		GatewayConns: make(map[string]net.Addr),
 	}
 	return &Register{
-		*antgo.NewAnt(transport, ip, port, config, protocol, reactor)}
+		*antgo.NewAnt(transport, ip, port, antgo.DefaultConfig, protocol, reactor)}
 }
 
 func (p *Register) Run() {
-	go p.Listen(time.Second * 30)
+	go p.Listen(Timeout)
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)

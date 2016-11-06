@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 type WRegisterReactor struct {
@@ -25,8 +24,8 @@ func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "broadcast_addresses":
 		if msg["address"] == nil || msg["address"] == "" {
 			fmt.Println("address not found\n")
-			c.Close()
 			p.OnClose(c)
+			c.Close()
 		}
 		addresses := msg["addresses"].([]string)
 		for _, addr := range addresses {
@@ -57,11 +56,6 @@ func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	return true
 }
 
-// type WorkerReactor struct {
-//     reactor.Reactor
-
-// }
-
 type Worker struct {
 	RegisterAnt *antgo.Ant
 	GatewayAnt  []*antgo.Ant
@@ -71,8 +65,7 @@ type Worker struct {
 	IdleGatewayAddr map[string]net.Addr
 }
 
-func NewWorker(register_transport string, register_ip string, register_port int, register_lType string, register_pType string,
-	sendLimit uint32, receiveLimit uint32) *Worker {
+func NewWorker(register_transport string, register_ip string, register_port int, register_lType string, register_pType string) *Worker {
 	worker := &Worker{
 		RegisterAnt:     nil,
 		GatewayAnt:      make([]*antgo.Ant, 0, 12),
@@ -80,29 +73,22 @@ func NewWorker(register_transport string, register_ip string, register_port int,
 		BusyGatewayAddr: make(map[string]net.Addr),
 		IdleGatewayAddr: make(map[string]net.Addr)}
 
-	config := &antgo.Config{
-		PacketSendChanLimit:    sendLimit,
-		PacketReceiveChanLimit: receiveLimit}
-
 	registerProtocol := NewProtocol(register_pType, NewListenDialer(register_lType, register_transport, register_ip, register_port))
 	registerReactor := &WRegisterReactor{worker: worker}
-	worker.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, config, registerProtocol, registerReactor)
+	worker.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, antgo.DefaultConfig, registerProtocol, registerReactor)
 	return worker
 }
 
 func (p *Worker) connectRegister() {
-	go p.RegisterAnt.Dial(time.Second * 30)
+	go p.RegisterAnt.Dial(Timeout)
 	p.RegisterAnt.Send("worker_connect", []byte("Welcome to p TCP Server"), 0)
 }
 
 func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gateway_port int, gateway_lType string, gateway_pType string) {
-	config := &antgo.Config{
-		PacketSendChanLimit:    20,
-		PacketReceiveChanLimit: 20}
 	gatewayProtocol := NewProtocol(gateway_pType, NewListenDialer(gateway_lType, gateway_transport, gateway_ip, gateway_port))
 	gatewayReactor := &WGatewayReactor{worker: p}
-	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, config, gatewayProtocol, gatewayReactor)
-	go gatewayAnt.Dial(time.Second)
+	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, antgo.DefaultConfig, gatewayProtocol, gatewayReactor)
+	go gatewayAnt.Dial(Timeout)
 	gatewayAnt.Send("worker_connect", []byte("Welcome to p TCP Server"), 0)
 	p.GatewayAnt = append(p.GatewayAnt, gatewayAnt)
 }
@@ -117,7 +103,7 @@ func (p *Worker) Run() {
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)
 	p.RegisterAnt.Stop()
-	for _, gatewayAnt := range p.GatewayAnt {
-		gatewayAnt.Stop()
-	}
+	// for _, gatewayAnt := range p.GatewayAnt {
+	// 	gatewayAnt.Stop()
+	// }
 }

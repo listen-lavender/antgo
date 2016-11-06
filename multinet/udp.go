@@ -28,8 +28,8 @@ func NewUDPListenDialer(netType string, ip string, port int) antgo.ListenDialer 
 	}
 }
 
-func (p UDPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) <-chan string {
-	msg := make(chan string)
+func (p UDPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) string {
+	// msg := make(chan string)
 
 	for {
 		data := make([]byte, 1024)
@@ -37,14 +37,14 @@ func (p UDPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) <-chan stri
 		readLengh, err := netConn.Read(data)
 
 		if err != nil { //EOF, or worse
-			return nil
+			return ""
 		}
 
 		if readLengh > 0 {
-			msg <- string(data)
+			return string(data)
 		}
 	}
-	return msg
+	// return msg
 }
 
 func (p *UDPListenDialer) SetDeadline(t time.Time) (err error) {

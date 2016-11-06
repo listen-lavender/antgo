@@ -13,8 +13,7 @@ type TCPReactor struct {
 func (p TCPReactor) OnConnect(c *antgo.Conn) net.Addr {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
-	c.PutExtraData(addr)
-	c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("Welcome to p TCP Server")), 0)
+	// c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("Welcome to p TCP Server")), 0)
 	return addr
 }
 
@@ -37,5 +36,7 @@ func (p TCPReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 }
 
 func (p TCPReactor) OnClose(c *antgo.Conn) {
-	fmt.Println("OnClose:", c.GetExtraData())
+	addr := c.RemoteAddr()
+	fmt.Println("OnClose:", addr)
+	c.Close()
 }

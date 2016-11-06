@@ -6,7 +6,7 @@ import (
 )
 
 type ListenDialer interface {
-	ReadPacket(netConn net.Conn, endTag []byte) <-chan string
+	ReadPacket(netConn net.Conn, endTag []byte) string
 	SetDeadline(t time.Time) (err error)
 	Listen()
 	Accept() (net.Conn, error)
