@@ -18,18 +18,21 @@ func (p TCPReactor) OnConnect(c *antgo.Conn) net.Addr {
 }
 
 func (p TCPReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
+	code := pt.Code()
 	event := pt.Event()
 	msg := pt.Msg()
 
 	switch event {
 	case "echo":
-		c.AsyncWritePacket(protocol.NewTCPPacket("echo", msg), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(code, "echo", msg), 0)
 	case "login":
-		c.AsyncWritePacket(protocol.NewTCPPacket("login", []byte(string(msg)+" has login")), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(code, "login", msg), 0)
+	case "prompt":
+		c.AsyncWritePacket(protocol.NewTCPPacket(code, "prompt", msg), 0)
 	case "quit":
 		return false
 	default:
-		c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("prompt cmd")), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(code, event, msg), 0)
 	}
 
 	return true

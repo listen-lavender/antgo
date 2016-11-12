@@ -3,7 +3,7 @@ package protocol
 import (
 	"../../antgo"
 	"net"
-	"strings"
+	// "strings"
 )
 
 var (
@@ -12,28 +12,37 @@ var (
 
 // Packet
 type TCPPacket struct {
+	code  int
 	event string
-	msg   []byte
+	msg   interface{}
 }
 
-func NewTCPPacket(event string, msg []byte) *TCPPacket {
+func NewTCPPacket(code int, event string, msg interface{}) *TCPPacket {
 	return &TCPPacket{
+		code:  code,
 		event: event,
 		msg:   msg,
 	}
 }
 
 func (p TCPPacket) Serialize() []byte {
-	buf := p.msg
-	buf = append(buf, endTag...)
+	data := make(map[string]interface{})
+	data["code"] = p.code
+	data["event"] = p.event
+	data["msg"] = p.msg
+	buf := antgo.JsonEncode(data)
 	return buf
+}
+
+func (p TCPPacket) Code() int {
+	return p.code
 }
 
 func (p TCPPacket) Event() string {
 	return p.event
 }
 
-func (p TCPPacket) Msg() []byte {
+func (p TCPPacket) Msg() interface{} {
 	return p.msg
 }
 
@@ -48,23 +57,28 @@ func NewTCPProtocol(listendialer antgo.ListenDialer) antgo.Protocol {
 
 func (p *TCPProtocol) ReadPacket(netConn net.Conn) antgo.Packet {
 	listendialer := p.ListenDialer()
-	command := listendialer.ReadPacket(netConn, endTag)
-	parts := strings.Split(command, " ")
-	if len(parts) > 1 {
-		event := parts[0]
-		msg := []byte(parts[1])
-		return NewTCPPacket(event, msg)
-	} else {
-		if parts[0] == "quit" {
-			return NewTCPPacket("quit", []byte(command))
-		} else {
-			return NewTCPPacket("unknow", []byte(command))
-		}
-	}
+	buf := listendialer.ReadPacket(netConn, endTag)
+	data := antgo.JsonDecode(buf)
+	// parts := strings.Split(command, " ")
+	code, _ := data["code"].(int)
+	event, _ := data["event"].(string)
+	msg := data["msg"]
+	return NewTCPPacket(code, event, msg)
+	// if len(parts) > 1 {
+	// 	event := parts[0]
+	// 	msg := []byte(parts[1])
+	// 	return NewTCPPacket(event, msg)
+	// } else {
+	// 	if parts[0] == "quit" {
+	// 		return NewTCPPacket("quit", []byte(command))
+	// 	} else {
+	// 		return NewTCPPacket("unknow", []byte(command))
+	// 	}
+	// }
 }
 
-func (p *TCPProtocol) Deserialize(event string, msg []byte) antgo.Packet {
-	return NewTCPPacket(event, msg)
+func (p *TCPProtocol) Deserialize(code int, event string, msg interface{}) antgo.Packet {
+	return NewTCPPacket(code, event, msg)
 }
 
 func (p *TCPProtocol) ListenDialer() antgo.ListenDialer {

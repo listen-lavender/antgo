@@ -29,7 +29,7 @@ func NewTCPListenDialer(netType string, ip string, port int) antgo.ListenDialer 
 	}
 }
 
-func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) string {
+func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) []byte {
 	fullBuf := bytes.NewBuffer([]byte{})
 
 	for {
@@ -39,7 +39,7 @@ func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) string {
 
 		if err != nil { //EOF, or worse
 			fmt.Println(err)
-			return ""
+			return nil
 		}
 
 		if readLengh > 0 {
@@ -47,9 +47,10 @@ func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) string {
 
 			index := bytes.Index(fullBuf.Bytes(), endTag)
 			if index > -1 {
-				command := fullBuf.Next(index)
+				data := fullBuf.Next(index)
 				fullBuf.Next(2)
-				return string(command)
+				return data
+				// return string(data)
 			}
 		}
 	}

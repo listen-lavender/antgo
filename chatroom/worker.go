@@ -16,9 +16,11 @@ type WRegisterReactor struct {
 }
 
 func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
+	code := pt.Code()
 	event := pt.Event()
-	msg := antgo.JsonDecode(pt.Msg())
+	msg := pt.Msg().(map[string]interface{})
 	secret := msg["secret"]
+	fmt.Println(code)
 	fmt.Println(secret)
 	switch event {
 	case "broadcast_addresses":
@@ -45,9 +47,11 @@ type WGatewayReactor struct {
 }
 
 func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
+	code := pt.Code()
 	event := pt.Event()
-	msg := antgo.JsonDecode(pt.Msg())
+	msg := pt.Msg().(map[string]interface{})
 	secret := msg["secret"]
+	fmt.Println(code)
 	fmt.Println(secret)
 	if event == "ping" {
 		return true
@@ -81,7 +85,7 @@ func NewWorker(register_transport string, register_ip string, register_port int,
 
 func (p *Worker) connectRegister() {
 	go p.RegisterAnt.Dial(Timeout)
-	p.RegisterAnt.Send("worker_connect", []byte("Welcome to p TCP Server"), 0)
+	p.RegisterAnt.Send(0, "worker_connect", []byte("Welcome to p TCP Server"), 0)
 }
 
 func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gateway_port int, gateway_lType string, gateway_pType string) {
@@ -89,12 +93,12 @@ func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gat
 	gatewayReactor := &WGatewayReactor{worker: p}
 	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, antgo.DefaultConfig, gatewayProtocol, gatewayReactor)
 	go gatewayAnt.Dial(Timeout)
-	gatewayAnt.Send("worker_connect", []byte("Welcome to p TCP Server"), 0)
+	gatewayAnt.Send(0, "worker_connect", []byte("Welcome to p TCP Server"), 0)
 	p.GatewayAnt = append(p.GatewayAnt, gatewayAnt)
 }
 
 func (p *Worker) PingRegister() {
-	p.RegisterAnt.Send("ping", []byte(""), 0)
+	p.RegisterAnt.Send(0, "ping", []byte(""), 0)
 }
 
 func (p *Worker) Run() {

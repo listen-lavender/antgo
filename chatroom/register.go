@@ -22,16 +22,18 @@ func (p *RegisterReactor) OnConnect(c *antgo.Conn) net.Addr {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
 	c.PutExtraData(addr)
-	c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("Welcome to p TCP Server")), 0)
+	c.AsyncWritePacket(protocol.NewTCPPacket(0, "prompt", []byte("Welcome to p TCP Server")), 0)
 	return addr
 }
 
 func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	// 删除定时器
+	code := pt.Code()
 	event := pt.Event()
-	msg := antgo.JsonDecode(pt.Msg())
+	msg := pt.Msg().(map[string]interface{})
 	secret := msg["secret"]
 	fmt.Println(secret)
+	fmt.Println(code)
 	// 开始验证
 	switch event {
 	// 是 gateway 连接
@@ -65,7 +67,7 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "ping":
 		return true
 	default:
-		c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("unknow msg")), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(0, "prompt", []byte("unknow msg")), 0)
 		p.OnClose(c)
 		c.Close()
 		return true
@@ -79,13 +81,13 @@ func (p *RegisterReactor) OnClose(c *antgo.Conn) {
 func (p *RegisterReactor) BroadcastAddrs() {
 	buffer := antgo.JsonEncode(p.GatewayConns)
 	for _, c := range p.WorkerConns {
-		c.AsyncWritePacket(protocol.NewTCPPacket("broadcast_addresses", buffer), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", buffer), 0)
 	}
 }
 
 func (p *RegisterReactor) UnicastAddrs(c *antgo.Conn) {
 	buffer := antgo.JsonEncode(p.GatewayConns)
-	c.AsyncWritePacket(protocol.NewTCPPacket("broadcast_addresses", buffer), 0)
+	c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", buffer), 0)
 }
 
 type Register struct {

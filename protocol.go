@@ -6,12 +6,13 @@ import (
 
 type Packet interface {
 	Serialize() []byte
+	Code() int
 	Event() string
-	Msg() []byte
+	Msg() interface{}
 }
 
 type Protocol interface {
 	ReadPacket(netConn net.Conn) Packet
-	Deserialize(event string, msg []byte) Packet
+	Deserialize(code int, event string, msg interface{}) Packet
 	ListenDialer() ListenDialer
 }
