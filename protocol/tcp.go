@@ -31,6 +31,7 @@ func (p TCPPacket) Serialize() []byte {
 	data["event"] = p.event
 	data["msg"] = p.msg
 	buf := antgo.JsonEncode(data)
+	buf = append(buf, endTag...)
 	return buf
 }
 

@@ -32,3 +32,19 @@ func Fastjoin(strargs ...string) string {
 	}
 	return buffer.String()
 }
+
+func MapKeys(data map[string]interface{}) []string {
+	keys := make([]string, 0, len(data))
+	for key, _ := range data {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func MapVals(data map[string]interface{}) []interface{} {
+	vals := make([]interface{}, 0, len(data))
+	for _, val := range data {
+		vals = append(vals, val)
+	}
+	return vals
+}

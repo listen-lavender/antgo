@@ -5,7 +5,6 @@ import (
 	"../../antgo/protocol"
 	"../../antgo/reactor"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,10 +14,10 @@ type RegisterReactor struct {
 	reactor.TCPReactor
 	secret       string
 	WorkerConns  map[string]*antgo.Conn
-	GatewayConns map[string]net.Addr
+	GatewayConns map[string]interface{}
 }
 
-func (p *RegisterReactor) OnConnect(c *antgo.Conn) net.Addr {
+func (p *RegisterReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
 	c.PutExtraData(addr)
@@ -28,6 +27,7 @@ func (p *RegisterReactor) OnConnect(c *antgo.Conn) net.Addr {
 
 func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	// 删除定时器
+	fmt.Println("OnMessage:", c.RemoteAddr())
 	code := pt.Code()
 	event := pt.Event()
 	msg := pt.Msg().(map[string]interface{})
@@ -38,36 +38,18 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	switch event {
 	// 是 gateway 连接
 	case "gateway_connect":
-		if msg["address"] == nil || msg["address"] == "" {
-			fmt.Println("address not found\n")
-			p.OnClose(c)
-			c.Close()
-			return true
-		}
-		if msg["secret"] != p.secret {
-			fmt.Println("Register: Key does not match secret_key !== {this->secretKey}\n")
-			p.OnClose(c)
-			c.Close()
-			return true
-		}
-		p.GatewayConns[c.Id] = c.RemoteAddr() // msg["address"]
-		p.BroadcastAddrs()
+		p.GatewayConns[c.RemoteAddr()] = 1
+		p.BroadcastAddr(c.RemoteAddr())
 		return true
 	// 是 worker 连接
 	case "worker_connect":
-		if msg["secret"] != p.secret {
-			fmt.Println("Register: Key does not match secret_key !== {this->secretKey}\n")
-			p.OnClose(c)
-			c.Close()
-			return true
-		}
-		p.WorkerConns[c.Id] = c
+		p.WorkerConns[c.RemoteAddr()] = c
 		p.UnicastAddrs(c)
 		return true
 	case "ping":
 		return true
 	default:
-		c.AsyncWritePacket(protocol.NewTCPPacket(0, "prompt", []byte("unknow msg")), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(0, "prompt", "unknow msg"), 0)
 		p.OnClose(c)
 		c.Close()
 		return true
@@ -78,16 +60,18 @@ func (p *RegisterReactor) OnClose(c *antgo.Conn) {
 	fmt.Println("OnClose:", c.GetExtraData())
 }
 
-func (p *RegisterReactor) BroadcastAddrs() {
-	buffer := antgo.JsonEncode(p.GatewayConns)
+func (p *RegisterReactor) BroadcastAddr(add string) {
+	data := make(map[string]interface{})
+	data["addresses"] = [1]string{add}
 	for _, c := range p.WorkerConns {
-		c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", buffer), 0)
+		c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", data), 0)
 	}
 }
 
 func (p *RegisterReactor) UnicastAddrs(c *antgo.Conn) {
-	buffer := antgo.JsonEncode(p.GatewayConns)
-	c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", buffer), 0)
+	data := make(map[string]interface{})
+	data["addresses"] = antgo.MapKeys(p.GatewayConns)
+	c.AsyncWritePacket(protocol.NewTCPPacket(0, "broadcast_addresses", data), 0)
 }
 
 type Register struct {
@@ -98,7 +82,7 @@ func NewRegister(transport string, ip string, port int, lType string, pType stri
 	protocol := NewProtocol(pType, NewListenDialer(lType, transport, ip, port))
 	reactor := &RegisterReactor{
 		WorkerConns:  make(map[string]*antgo.Conn),
-		GatewayConns: make(map[string]net.Addr),
+		GatewayConns: make(map[string]interface{}),
 	}
 	return &Register{
 		*antgo.NewAnt(transport, ip, port, antgo.DefaultConfig, protocol, reactor)}

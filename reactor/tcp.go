@@ -4,16 +4,14 @@ import (
 	"../../antgo"
 	"../../antgo/protocol"
 	"fmt"
-	"net"
 )
 
 type TCPReactor struct {
 }
 
-func (p TCPReactor) OnConnect(c *antgo.Conn) net.Addr {
+func (p TCPReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
-	// c.AsyncWritePacket(protocol.NewTCPPacket("prompt", []byte("Welcome to p TCP Server")), 0)
 	return addr
 }
 

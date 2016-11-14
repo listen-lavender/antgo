@@ -61,7 +61,7 @@ func (c *Conn) IsClosed() bool {
 }
 
 func (c *Conn) Do(ant *Ant) {
-	if ant.OnConnect(c) == nil {
+	if ant.OnConnect(c) == "" {
 		return
 	}
 
@@ -182,10 +182,10 @@ func (c *Conn) writeLoop(ant *Ant) {
 	}
 }
 
-func (c *Conn) LocalAddr() net.Addr {
-	return c.netConn.LocalAddr()
+func (c *Conn) LocalAddr() string {
+	return c.netConn.LocalAddr().String()
 }
 
-func (c *Conn) RemoteAddr() net.Addr {
-	return c.netConn.RemoteAddr()
+func (c *Conn) RemoteAddr() string {
+	return c.netConn.RemoteAddr().String()
 }

@@ -4,7 +4,6 @@ import (
 	"../../antgo"
 	"../../antgo/reactor"
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,8 +14,8 @@ type GRegisterReactor struct {
 	gateway *Gateway
 }
 
-func (p *GRegisterReactor) OnConnect(c *antgo.Conn) net.Addr {
-	return nil
+func (p *GRegisterReactor) OnConnect(c *antgo.Conn) string {
+	return ""
 }
 
 func (p *GRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
@@ -31,8 +30,8 @@ type GEndReactor struct {
 	gateway *Gateway
 }
 
-func (p *GEndReactor) OnConnect(c *antgo.Conn) net.Addr {
-	return nil
+func (p *GEndReactor) OnConnect(c *antgo.Conn) string {
+	return ""
 }
 
 func (p *GEndReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
@@ -54,8 +53,8 @@ type GWorkerReactor struct {
 	gateway *Gateway
 }
 
-func (p *GWorkerReactor) OnConnect(c *antgo.Conn) net.Addr {
-	return nil
+func (p *GWorkerReactor) OnConnect(c *antgo.Conn) string {
+	return ""
 }
 
 func (p *GWorkerReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
@@ -101,20 +100,20 @@ func NewGateway(end_transport string, end_ip string, end_port int, end_lType str
 
 func (p *Gateway) connectRegister() {
 	go p.RegisterAnt.Dial(Timeout)
-	p.RegisterAnt.Send(0, "gateway_connect", []byte("Welcome to p TCP Server"), 0)
+	p.RegisterAnt.Send(0, "gateway_connect", []byte("Welcome to p TCP Server"), nil, 0)
 }
 
 func (p *Gateway) pingEnd() {
-	p.EndAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), 0)
+	p.EndAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), nil, 0)
 }
 
 func (p *Gateway) pingRegister() {
-	p.RegisterAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), 0)
+	p.RegisterAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), nil, 0)
 }
 
 func (p *Gateway) pingWorker() {
 	for _, WorkerAnt := range p.WorkerAnt {
-		WorkerAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), 0)
+		WorkerAnt.Send(0, "ping", []byte("Welcome to p TCP Server"), nil, 0)
 	}
 }
 

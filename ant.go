@@ -103,8 +103,12 @@ func (ant *Ant) Dial(acceptTimeout time.Duration) {
 	}()
 }
 
-func (ant *Ant) Send(code int, event string, msg interface{}, timeout time.Duration) {
-	for _, conn := range ant.Conns {
+func (ant *Ant) Send(code int, event string, msg interface{}, conn *Conn, timeout time.Duration) {
+	if conn == nil {
+		for _, conn := range ant.Conns {
+			conn.AsyncWritePacket(ant.protocol.Deserialize(code, event, msg), timeout)
+		}
+	} else {
 		conn.AsyncWritePacket(ant.protocol.Deserialize(code, event, msg), timeout)
 	}
 }
