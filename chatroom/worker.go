@@ -23,22 +23,25 @@ func (p *WRegisterReactor) OnConnect(c *antgo.Conn) string {
 }
 
 func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
+	fmt.Println("OnMessage:", c.RemoteAddr())
 	code := pt.Code()
 	event := pt.Event()
-	msg := pt.Msg().(map[string]interface{})
-	secret := msg["secret"]
+	msg := pt.Msg()
 	fmt.Println(code)
-	fmt.Println(secret)
 	switch event {
+	case "prompt":
+		fmt.Println("prompt")
+		fmt.Println(msg)
 	case "broadcast_addresses":
-		if msg["address"] == nil || msg["address"] == "" {
-			fmt.Println("address not found\n")
-			p.OnClose(c)
-			c.Close()
-		}
-		addresses := msg["addresses"].([]string)
+		data := msg.(map[string]interface{})
+		secret := data["secret"]
+		fmt.Println("broadcast_addresses")
+		fmt.Println(secret)
+		addresses := data["addresses"].([]interface{})
 		for _, addr := range addresses {
-			p.worker.AllGatewayAddr[addr] = nil
+			address := addr.(string)
+			p.worker.AllGatewayAddr[address] = nil
+			fmt.Println(address)
 		}
 	default:
 		fmt.Println("Receive bad event:$event from Register.\n")
@@ -99,12 +102,11 @@ func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gat
 	gatewayReactor := &WGatewayReactor{worker: p}
 	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, antgo.DefaultConfig, gatewayProtocol, gatewayReactor)
 	go gatewayAnt.Dial(Timeout)
-	gatewayAnt.Send(0, "worker_connect", []byte("Welcome to p TCP Server"), nil, 0)
 	p.GatewayAnt = append(p.GatewayAnt, gatewayAnt)
 }
 
 func (p *Worker) PingRegister() {
-	p.RegisterAnt.Send(0, "ping", []byte(""), nil, 0)
+	p.RegisterAnt.Send(0, "ping", "", nil, 0)
 }
 
 func (p *Worker) Run() {

@@ -94,7 +94,12 @@ func (c *Conn) readLoop(ant *Ant) {
 
 		default:
 		}
-		c.receiveChan <- ant.protocol.ReadPacket(c.netConn)
+		p := ant.protocol.ReadPacket(c.netConn)
+		if p == nil{
+			return
+		}else{
+			c.receiveChan <- p
+		}
 	}
 }
 
@@ -114,10 +119,11 @@ func (c *Conn) handleLoop(ant *Ant) {
 			return
 
 		case p := <-c.receiveChan:
-			if !c.IsClosed() {
+			if c.IsClosed() {
+				return
+			}else{
 				ant.OnMessage(c, p)
 			}
-			return
 		}
 	}
 }

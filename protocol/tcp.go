@@ -59,6 +59,9 @@ func NewTCPProtocol(listendialer antgo.ListenDialer) antgo.Protocol {
 func (p *TCPProtocol) ReadPacket(netConn net.Conn) antgo.Packet {
 	listendialer := p.ListenDialer()
 	buf := listendialer.ReadPacket(netConn, endTag)
+	if buf == nil{
+		return nil
+	}
 	data := antgo.JsonDecode(buf)
 	// parts := strings.Split(command, " ")
 	code, _ := data["code"].(int)

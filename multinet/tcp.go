@@ -48,7 +48,7 @@ func (p *TCPListenDialer) ReadPacket(netConn net.Conn, endTag []byte) []byte {
 			index := bytes.Index(fullBuf.Bytes(), endTag)
 			if index > -1 {
 				data := fullBuf.Next(index)
-				fullBuf.Next(2)
+				fullBuf.Next(len(endTag))
 				return data
 				// return string(data)
 			}

@@ -2,7 +2,6 @@ package reactor
 
 import (
 	"../../antgo"
-	"../../antgo/protocol"
 	"fmt"
 )
 
@@ -20,18 +19,9 @@ func (p TCPReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	event := pt.Event()
 	msg := pt.Msg()
 
-	switch event {
-	case "echo":
-		c.AsyncWritePacket(protocol.NewTCPPacket(code, "echo", msg), 0)
-	case "login":
-		c.AsyncWritePacket(protocol.NewTCPPacket(code, "login", msg), 0)
-	case "prompt":
-		c.AsyncWritePacket(protocol.NewTCPPacket(code, "prompt", msg), 0)
-	case "quit":
-		return false
-	default:
-		c.AsyncWritePacket(protocol.NewTCPPacket(code, event, msg), 0)
-	}
+	fmt.Println("code:", code)
+	fmt.Println("event:", event)
+	fmt.Println("msg:", msg)
 
 	return true
 }
