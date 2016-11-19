@@ -8,7 +8,7 @@ import (
 type ListenDialer interface {
 	ReadPacket(netConn net.Conn, endTag []byte) []byte
 	SetDeadline(t time.Time) (err error)
-	Listen()
+	Listen() error
 	Accept() (net.Conn, error)
 	Dial() (net.Conn, error)
 	Close()

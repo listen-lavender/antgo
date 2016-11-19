@@ -41,7 +41,10 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 
 func (ant *Ant) Listen(acceptTimeout time.Duration) {
 	listendialer := ant.protocol.ListenDialer()
-	listendialer.Listen()
+	if err := listendialer.Listen(); err != nil {
+		fmt.Println(err)
+		return
+	}
 	fmt.Println("Listen ", ant.Address, "...")
 	WaitGroup.Add(1)
 

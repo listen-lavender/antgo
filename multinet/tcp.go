@@ -61,12 +61,10 @@ func (p *TCPListenDialer) SetDeadline(t time.Time) (err error) {
 	return nil
 }
 
-func (p *TCPListenDialer) Listen() {
+func (p *TCPListenDialer) Listen() error {
 	listener, err := net.ListenTCP(p.netType, p.addr)
 	p.listener = listener
-	if err != nil {
-		fmt.Println(err)
-	}
+	return err
 }
 
 func (p *TCPListenDialer) Accept() (net.Conn, error) {
