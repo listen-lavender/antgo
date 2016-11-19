@@ -38,7 +38,7 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "gateway_connect":
 		data := msg.(map[string]interface{})
 		addresses := data["addresses"].([]interface{})
-		for _, addr := range(addresses){
+		for _, addr := range addresses {
 			address := addr.(string)
 			println(address)
 			p.GatewayConns[address] = 1
@@ -81,11 +81,11 @@ type Register struct {
 
 func NewRegister(localTransport string, localIP string, localPort int, localType string) *Register {
 	// &Register{*antgo.NewAnt(localTransport, localIP, localPort, antgo.DefaultConfig, protocol, reactor)}
-	register := &Register{Ant:nil}
+	register := &Register{Ant: nil}
 
 	protocol := NewProtocol(localType, NewListenDialer(localType, localTransport, localIP, localPort))
 	reactor := &RegisterReactor{
-		register: register,
+		register:     register,
 		WorkerConns:  make(map[string]*antgo.Conn),
 		GatewayConns: make(map[string]interface{}),
 	}

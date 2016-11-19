@@ -111,8 +111,8 @@ func (ant *Ant) Send(code int, event string, msg interface{}, conn *Conn, timeou
 	}
 }
 
-func (ant *Ant) AddressJoin() string{
-    return Fastjoin(":", ant.Transport, ant.IP, strconv.Itoa(ant.Port), ant.protocol.Type())
+func (ant *Ant) AddressJoin() string {
+	return Fastjoin(":", ant.Transport, ant.IP, strconv.Itoa(ant.Port), ant.protocol.Type())
 }
 
 func (ant *Ant) Run() {

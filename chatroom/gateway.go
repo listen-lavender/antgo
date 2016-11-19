@@ -17,7 +17,7 @@ type GRegisterReactor struct {
 func (p *GRegisterReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
-	p.gateway.RegisterAnt.Send(0, "gateway_connect", map[string]interface{}{"secret": "", "addresses":p.gateway.Addresses}, c, 0)
+	p.gateway.RegisterAnt.Send(0, "gateway_connect", map[string]interface{}{"secret": "", "addresses": p.gateway.Addresses}, c, 0)
 	return addr
 }
 
@@ -64,7 +64,7 @@ func (p *GEndReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 type GWorkerReactor struct {
 	reactor.TCPReactor
 	gateway *Gateway
-	ant *antgo.Ant
+	ant     *antgo.Ant
 }
 
 func (p *GWorkerReactor) OnConnect(c *antgo.Conn) string {
@@ -84,8 +84,7 @@ func (p *GWorkerReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	case "prompt":
 		fmt.Println(msg)
 	case "worker_connect":
-		fmt.Println("=====worker")
-		fmt.Println(c.RemoteAddr())
+		fmt.Println(msg)
 	case "ping":
 		fmt.Println("ping")
 	default:
@@ -156,8 +155,8 @@ func (p *Gateway) pingWorker() {
 
 func (p *Gateway) Run() {
 	go p.EndAnt.Listen(Timeout)
-	for _, WorkerAnt := range p.WorkerAnt {
-		go WorkerAnt.Listen(Timeout)
+	for index, _ := range p.WorkerAnt {
+		go p.WorkerAnt[index].Listen(Timeout)
 	}
 	p.connectRegister()
 

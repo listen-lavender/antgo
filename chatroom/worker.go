@@ -13,7 +13,7 @@ import (
 type WRegisterReactor struct {
 	reactor.TCPReactor
 	worker *Worker
-	ant *antgo.Ant
+	ant    *antgo.Ant
 }
 
 func (p *WRegisterReactor) OnConnect(c *antgo.Conn) string {
@@ -58,28 +58,32 @@ type WGatewayReactor struct {
 	reactor.TCPReactor
 	// WorkerConns  map[string]*antgo.Conn
 	// GatewayConns map[string]*antgo.Conn
-	worker       *Worker
-	ant *antgo.Ant
+	worker *Worker
+	ant    *antgo.Ant
 }
 
 func (p *WGatewayReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
-	p.ant.Send(0, "worker_connect", map[string]string{"secret": ""}, c, 0)
+	p.ant.Send(0, "worker_connect", map[string]string{"secret": "abc"}, c, 0)
 	return addr
 }
 
 func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
+	fmt.Println("OnMessage:", c.RemoteAddr())
 	code := pt.Code()
 	event := pt.Event()
-	msg := pt.Msg().(map[string]interface{})
-	secret := msg["secret"]
+	msg := pt.Msg()
 	fmt.Println(code)
-	fmt.Println(secret)
-	if event == "ping" {
-		return true
+	switch event {
+	case "prompt":
+		fmt.Println("prompt")
+		fmt.Println(msg)
+	case "ping":
+		fmt.Println("ping")
+	default:
+		fmt.Println("Receive bad event:$event from Register.\n")
 	}
-	Handlers[event](c, msg["data"].(string), p.worker)
 	return true
 }
 

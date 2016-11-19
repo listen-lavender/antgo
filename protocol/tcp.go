@@ -54,13 +54,13 @@ type TCPProtocol struct {
 }
 
 func NewTCPProtocol(listendialer antgo.ListenDialer, protocoltype string) antgo.Protocol {
-	return &TCPProtocol{listendialer:listendialer, protocoltype:protocoltype}
+	return &TCPProtocol{listendialer: listendialer, protocoltype: protocoltype}
 }
 
 func (p *TCPProtocol) ReadPacket(netConn net.Conn) antgo.Packet {
 	listendialer := p.ListenDialer()
 	buf := listendialer.ReadPacket(netConn, endTag)
-	if buf == nil{
+	if buf == nil {
 		return nil
 	}
 	data := antgo.JsonDecode(buf)

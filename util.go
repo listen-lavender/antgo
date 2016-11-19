@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-    "strings"
-    "strconv"
+	"strconv"
+	"strings"
 )
 
 var buffer bytes.Buffer
@@ -26,36 +26,36 @@ func JsonEncode(dict interface{}) []byte {
 		fmt.Println(err)
 		return nil
 	}
-    println(string(str))
+	println(string(str))
 	return str
 }
 
 func Fastjoin(separator string, args ...string) string {
-    last := len(args) - 1
-    if separator != ""{
-        for k := 0; k < last; k++ {
-            buffer.WriteString(args[k])
-            buffer.WriteString(separator)
-        }
-    }else{
-        for k := 0; k < last; k++ {
-            buffer.WriteString(args[k])
-        }
-    }
-    buffer.WriteString(args[last])
-    str := buffer.String()
-    buffer.Reset()
-    return str
+	last := len(args) - 1
+	if separator != "" {
+		for k := 0; k < last; k++ {
+			buffer.WriteString(args[k])
+			buffer.WriteString(separator)
+		}
+	} else {
+		for k := 0; k < last; k++ {
+			buffer.WriteString(args[k])
+		}
+	}
+	buffer.WriteString(args[last])
+	str := buffer.String()
+	buffer.Reset()
+	return str
 }
 
 func Fastsplit(str, separator string) []string {
-    return strings.Split(str, separator)
+	return strings.Split(str, separator)
 }
 
-func AddressSplit(address string)(string, string, int, string){
-    eles := Fastsplit(address, ":")
-    port, _ := strconv.Atoi(eles[2])
-    return eles[0], eles[1], port, eles[3]
+func AddressSplit(address string) (string, string, int, string) {
+	eles := Fastsplit(address, ":")
+	port, _ := strconv.Atoi(eles[2])
+	return eles[0], eles[1], port, eles[3]
 }
 
 func MapKeys(data map[string]interface{}) []string {
