@@ -13,12 +13,13 @@ import (
 type WRegisterReactor struct {
 	reactor.TCPReactor
 	worker *Worker
+	ant *antgo.Ant
 }
 
 func (p *WRegisterReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
-	p.worker.RegisterAnt.Send(0, "worker_connect", map[string]string{"secret": ""}, c, 0)
+	p.ant.Send(0, "worker_connect", map[string]string{"secret": ""}, c, 0)
 	return addr
 }
 
@@ -40,9 +41,13 @@ func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 		addresses := data["addresses"].([]interface{})
 		for _, addr := range addresses {
 			address := addr.(string)
+			gatewayTransport, gatewayIP, gatewayPort, gatewayType := antgo.AddressSplit(address)
+			p.worker.connectGateway(gatewayTransport, gatewayIP, gatewayPort, gatewayType)
 			p.worker.AllGatewayAddr[address] = nil
 			fmt.Println(address)
 		}
+	case "ping":
+		fmt.Println("ping")
 	default:
 		fmt.Println("Receive bad event:$event from Register.\n")
 	}
@@ -51,9 +56,17 @@ func (p *WRegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 
 type WGatewayReactor struct {
 	reactor.TCPReactor
-	WorkerConns  map[string]*antgo.Conn
-	GatewayConns map[string]*antgo.Conn
+	// WorkerConns  map[string]*antgo.Conn
+	// GatewayConns map[string]*antgo.Conn
 	worker       *Worker
+	ant *antgo.Ant
+}
+
+func (p *WGatewayReactor) OnConnect(c *antgo.Conn) string {
+	addr := c.RemoteAddr()
+	fmt.Println("OnConnect:", addr)
+	p.ant.Send(0, "worker_connect", map[string]string{"secret": ""}, c, 0)
+	return addr
 }
 
 func (p *WGatewayReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
@@ -79,7 +92,7 @@ type Worker struct {
 	IdleGatewayAddr map[string]net.Addr
 }
 
-func NewWorker(register_transport string, register_ip string, register_port int, register_lType string, register_pType string) *Worker {
+func NewWorker(registerTransport string, registerIP string, registerPort int, registerType string) *Worker {
 	worker := &Worker{
 		RegisterAnt:     nil,
 		GatewayAnt:      make([]*antgo.Ant, 0, 12),
@@ -87,20 +100,23 @@ func NewWorker(register_transport string, register_ip string, register_port int,
 		BusyGatewayAddr: make(map[string]net.Addr),
 		IdleGatewayAddr: make(map[string]net.Addr)}
 
-	registerProtocol := NewProtocol(register_pType, NewListenDialer(register_lType, register_transport, register_ip, register_port))
+	registerProtocol := NewProtocol(registerType, NewListenDialer(registerType, registerTransport, registerIP, registerPort))
 	registerReactor := &WRegisterReactor{worker: worker}
-	worker.RegisterAnt = antgo.NewAnt(register_transport, register_ip, register_port, antgo.DefaultConfig, registerProtocol, registerReactor)
+	registerAnt := antgo.NewAnt(registerTransport, registerIP, registerPort, antgo.DefaultConfig, registerProtocol, registerReactor)
+	registerReactor.ant = registerAnt
+	worker.RegisterAnt = registerAnt
 	return worker
 }
 
 func (p *Worker) connectRegister() {
-	p.RegisterAnt.Dial(Timeout)
+	go p.RegisterAnt.Dial(Timeout)
 }
 
-func (p *Worker) connectGateway(gateway_transport string, gateway_ip string, gateway_port int, gateway_lType string, gateway_pType string) {
-	gatewayProtocol := NewProtocol(gateway_pType, NewListenDialer(gateway_lType, gateway_transport, gateway_ip, gateway_port))
+func (p *Worker) connectGateway(gatewayTransport string, gatewayIP string, gatewayPort int, gatewayType string) {
+	gatewayProtocol := NewProtocol(gatewayType, NewListenDialer(gatewayType, gatewayTransport, gatewayIP, gatewayPort))
 	gatewayReactor := &WGatewayReactor{worker: p}
-	gatewayAnt := antgo.NewAnt(gateway_transport, gateway_ip, gateway_port, antgo.DefaultConfig, gatewayProtocol, gatewayReactor)
+	gatewayAnt := antgo.NewAnt(gatewayTransport, gatewayIP, gatewayPort, antgo.DefaultConfig, gatewayProtocol, gatewayReactor)
+	gatewayReactor.ant = gatewayAnt
 	go gatewayAnt.Dial(Timeout)
 	p.GatewayAnt = append(p.GatewayAnt, gatewayAnt)
 }
@@ -114,8 +130,5 @@ func (p *Worker) Run() {
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)
-	p.RegisterAnt.Stop()
-	// for _, gatewayAnt := range p.GatewayAnt {
-	// 	gatewayAnt.Stop()
-	// }
+	antgo.Stop()
 }

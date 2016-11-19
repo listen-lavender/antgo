@@ -7,6 +7,6 @@ import (
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	register := chatroom.NewRegister("tcp4", "127.0.0.1", 2300, "tcp", "tcp")
+	register := chatroom.NewRegister("tcp4", "127.0.0.1", 2300, "tcp")
 	register.Run()
 }

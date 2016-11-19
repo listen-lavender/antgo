@@ -22,7 +22,7 @@ func (p *RegisterReactor) OnConnect(c *antgo.Conn) string {
 	addr := c.RemoteAddr()
 	fmt.Println("OnConnect:", addr)
 	c.PutExtraData(addr)
-	p.register.Ant.Send(0, "prompt", "Welcome to p TCP Server", c, 0)
+	p.register.Ant.Send(0, "prompt", "Welcome to Register Server", c, 0)
 	return addr
 }
 
@@ -37,10 +37,13 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 		fmt.Println(msg)
 	case "gateway_connect":
 		data := msg.(map[string]interface{})
-		secret := data["secret"]
-		fmt.Println(secret)
-		p.GatewayConns[c.RemoteAddr()] = 1
-		p.BroadcastAddr(c.RemoteAddr())
+		addresses := data["addresses"].([]interface{})
+		for _, addr := range(addresses){
+			address := addr.(string)
+			println(address)
+			p.GatewayConns[address] = 1
+			p.BroadcastAddr(address)
+		}
 	// 是 worker 连接
 	case "worker_connect":
 		data := msg.(map[string]interface{})
@@ -58,9 +61,9 @@ func (p *RegisterReactor) OnMessage(c *antgo.Conn, pt antgo.Packet) bool {
 	return true
 }
 
-func (p *RegisterReactor) BroadcastAddr(add string) {
+func (p *RegisterReactor) BroadcastAddr(addr string) {
 	data := make(map[string]interface{})
-	data["addresses"] = [1]string{add}
+	data["addresses"] = [1]string{addr}
 	for _, c := range p.WorkerConns {
 		p.register.Ant.Send(0, "broadcast_addresses", data, c, 0)
 	}
@@ -68,8 +71,6 @@ func (p *RegisterReactor) BroadcastAddr(add string) {
 
 func (p *RegisterReactor) UnicastAddrs(c *antgo.Conn) {
 	data := make(map[string]interface{})
-	p.GatewayConns[c.RemoteAddr()] = c
-	p.GatewayConns["127.0.0.1:8000"] = nil
 	data["addresses"] = antgo.MapKeys(p.GatewayConns)
 	p.register.Ant.Send(0, "broadcast_addresses", data, c, 0)
 }
@@ -78,17 +79,17 @@ type Register struct {
 	*antgo.Ant
 }
 
-func NewRegister(transport string, ip string, port int, lType string, pType string) *Register {
-	// &Register{*antgo.NewAnt(transport, ip, port, antgo.DefaultConfig, protocol, reactor)}
+func NewRegister(localTransport string, localIP string, localPort int, localType string) *Register {
+	// &Register{*antgo.NewAnt(localTransport, localIP, localPort, antgo.DefaultConfig, protocol, reactor)}
 	register := &Register{Ant:nil}
 
-	protocol := NewProtocol(pType, NewListenDialer(lType, transport, ip, port))
+	protocol := NewProtocol(localType, NewListenDialer(localType, localTransport, localIP, localPort))
 	reactor := &RegisterReactor{
 		register: register,
 		WorkerConns:  make(map[string]*antgo.Conn),
 		GatewayConns: make(map[string]interface{}),
 	}
-	register.Ant = antgo.NewAnt(transport, ip, port, antgo.DefaultConfig, protocol, reactor)
+	register.Ant = antgo.NewAnt(localTransport, localIP, localPort, antgo.DefaultConfig, protocol, reactor)
 	return register
 }
 
@@ -97,5 +98,5 @@ func (p *Register) Run() {
 	help := make(chan os.Signal)
 	signal.Notify(help, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Signal: ", <-help)
-	p.Stop()
+	antgo.Stop()
 }

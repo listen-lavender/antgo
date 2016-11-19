@@ -50,10 +50,11 @@ func (p TCPPacket) Msg() interface{} {
 type TCPProtocol struct {
 	// listendialer *multinet.TCPListenDialer
 	listendialer antgo.ListenDialer
+	protocoltype string
 }
 
-func NewTCPProtocol(listendialer antgo.ListenDialer) antgo.Protocol {
-	return &TCPProtocol{listendialer}
+func NewTCPProtocol(listendialer antgo.ListenDialer, protocoltype string) antgo.Protocol {
+	return &TCPProtocol{listendialer:listendialer, protocoltype:protocoltype}
 }
 
 func (p *TCPProtocol) ReadPacket(netConn net.Conn) antgo.Packet {
@@ -87,4 +88,8 @@ func (p *TCPProtocol) Deserialize(code int, event string, msg interface{}) antgo
 
 func (p *TCPProtocol) ListenDialer() antgo.ListenDialer {
 	return p.listendialer
+}
+
+func (p *TCPProtocol) Type() string {
+	return p.protocoltype
 }

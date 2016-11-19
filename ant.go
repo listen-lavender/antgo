@@ -16,8 +16,6 @@ type Ant struct {
 	IP        string // ip
 	Port      int    // port
 	Address   string // listen address
-	Ptype     string // protocol type, name of New method
-	Rtype     string // reactor type, name of struct
 	Conns     []*Conn
 
 	Config   *Config  // ant configuration
@@ -27,7 +25,7 @@ type Ant struct {
 
 // NewAnt creates a ant
 func NewAnt(transport string, ip string, port int, config *Config, protocol Protocol, reactor Reactor) *Ant {
-	address := Fastjoin(transport, "://", ip, ":", strconv.Itoa(port))
+	address := Fastjoin("", transport, "://", ip, ":", strconv.Itoa(port))
 	return &Ant{
 		Transport: transport,
 		IP:        ip,
@@ -113,17 +111,16 @@ func (ant *Ant) Send(code int, event string, msg interface{}, conn *Conn, timeou
 	}
 }
 
+func (ant *Ant) AddressJoin() string{
+    return Fastjoin(":", ant.Transport, ant.IP, strconv.Itoa(ant.Port), ant.protocol.Type())
+}
+
 func (ant *Ant) Run() {
 
 }
 
 func (ant *Ant) Reload() {
 
-}
-
-func (ant *Ant) Stop() {
-	close(ExitChan)
-	WaitGroup.Wait()
 }
 
 func (ant *Ant) BeforeStart() {
@@ -148,4 +145,9 @@ func (ant *Ant) BeforeStop() {
 
 func (ant *Ant) AfterStop() {
 
+}
+
+func Stop() {
+	close(ExitChan)
+	WaitGroup.Wait()
 }

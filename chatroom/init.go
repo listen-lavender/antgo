@@ -14,7 +14,7 @@ var Timeout time.Duration
 var Handlers map[string]func(conn *antgo.Conn, data string, worker *Worker)
 
 func init() {
-	Timeout = 5 * time.Second
+	Timeout = 10 * time.Second
 }
 
 func NewListenDialer(Ltype string, Transport string, IP string, Port int) antgo.ListenDialer {
@@ -32,5 +32,5 @@ func NewProtocol(Ptype string, listendialer antgo.ListenDialer) antgo.Protocol {
 	buffer.WriteString(strings.ToLower(Ptype))
 	buffer.WriteString("protocol")
 	// buffer.Reset()
-	return protocol.Indexes[buffer.String()](listendialer)
+	return protocol.Indexes[buffer.String()](listendialer, Ptype)
 }
