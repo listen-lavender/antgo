@@ -39,13 +39,13 @@ func NewAnt(transport string, ip string, port int, config *Config, protocol Prot
 	}
 }
 
-func (ant *Ant) Listen(acceptTimeout time.Duration) {
-	listendialer := ant.protocol.ListenDialer()
+func (p *Ant) Listen(acceptTimeout time.Duration) {
+	listendialer := p.protocol.ListenDialer()
 	if err := listendialer.Listen(); err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Listen ", ant.Address, "...")
+	fmt.Println("Listen ", p.Address, "...")
 	WaitGroup.Add(1)
 
 	defer func() {
@@ -70,16 +70,16 @@ func (ant *Ant) Listen(acceptTimeout time.Duration) {
 
 		WaitGroup.Add(1)
 		go func() {
-			conn := newConn(netConn, ant)
-			conn.Do(ant)
-			ant.Conns = append(ant.Conns, conn)
+			conn := newConn(netConn, p)
+			conn.Do(p)
+			p.Conns = append(p.Conns, conn)
 			WaitGroup.Done()
 		}()
 	}
 }
 
-func (ant *Ant) Dial(acceptTimeout time.Duration) {
-	listendialer := ant.protocol.ListenDialer()
+func (p *Ant) Dial(acceptTimeout time.Duration) {
+	listendialer := p.protocol.ListenDialer()
 	WaitGroup.Add(1)
 
 	defer func() {
@@ -93,60 +93,60 @@ func (ant *Ant) Dial(acceptTimeout time.Duration) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Dial ", ant.Address, "...")
+	fmt.Println("Dial ", p.Address, "...")
 
 	WaitGroup.Add(1)
 	go func() {
-		conn := newConn(netConn, ant)
-		conn.Do(ant)
-		ant.Conns = append(ant.Conns, conn)
+		conn := newConn(netConn, p)
+		conn.Do(p)
+		p.Conns = append(p.Conns, conn)
 		WaitGroup.Done()
 	}()
 }
 
-func (ant *Ant) Send(code int, event string, msg interface{}, conn *Conn, timeout time.Duration) {
+func (p *Ant) Send(code int, event string, msg interface{}, conn *Conn, timeout time.Duration) {
 	if conn == nil {
-		for _, conn := range ant.Conns {
-			conn.AsyncWritePacket(ant.protocol.Deserialize(code, event, msg), timeout)
+		for _, conn := range p.Conns {
+			conn.AsyncWritePacket(p.protocol.Deserialize(code, event, msg), timeout)
 		}
 	} else {
-		conn.AsyncWritePacket(ant.protocol.Deserialize(code, event, msg), timeout)
+		conn.AsyncWritePacket(p.protocol.Deserialize(code, event, msg), timeout)
 	}
 }
 
-func (ant *Ant) AddressJoin() string {
-	return Fastjoin(":", ant.Transport, ant.IP, strconv.Itoa(ant.Port), ant.protocol.Type())
+func (p *Ant) AddressJoin() string {
+	return Fastjoin(":", p.Transport, p.IP, strconv.Itoa(p.Port), p.protocol.Type())
 }
 
-func (ant *Ant) Run() {
-
-}
-
-func (ant *Ant) Reload() {
+func (p *Ant) Run() {
 
 }
 
-func (ant *Ant) BeforeStart() {
+func (p *Ant) Reload() {
 
 }
 
-func (ant *Ant) AfterStart() {
+func (p *Ant) BeforeStart() {
 
 }
 
-func (ant *Ant) BeforeReload() {
+func (p *Ant) AfterStart() {
 
 }
 
-func (ant *Ant) AfterReload() {
+func (p *Ant) BeforeReload() {
 
 }
 
-func (ant *Ant) BeforeStop() {
+func (p *Ant) AfterReload() {
 
 }
 
-func (ant *Ant) AfterStop() {
+func (p *Ant) BeforeStop() {
+
+}
+
+func (p *Ant) AfterStop() {
 
 }
 
